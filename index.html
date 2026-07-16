@@ -1,59 +1,24 @@
-
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Enterprise Dashboard System - PurworejoIT</title>
-  
+  <title>Enterprise Dashboard System - Monitoring LC</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
   <!-- Google Fonts: Inter -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- ECharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
   
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  
-  <!-- Custom Tailwind Configurations -->
-  <script>a
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-          },
-          colors: {
-            brand: {
-              50: '#f0f7ff',
-              100: '#e0effe',
-              200: '#bae2fd',
-              300: '#7cc8fc',
-              400: '#38a9fa',
-              500: '#0e8eed',
-              600: '#0270c9',
-              700: '#0359a3',
-              800: '#074c86',
-              900: '#0c406e',
-              950: '#082949',
-            }
-          }
-        }
-      }
-    }
-  </script>
-
-  <!-- Libraries -->
-  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
+  <!-- CSS Configurations -->
   <style>
-    /* Custom Scrollbar Styles */
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    /* Custom Scrollbars */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -61,625 +26,495 @@
     ::-webkit-scrollbar-track {
       background: transparent;
     }
-    .dark ::-webkit-scrollbar-track {
-      background: #1e293b;
-    }
-    ::-webkit-scrollbar-thumb {
+    .light ::-webkit-scrollbar-thumb {
       background: #cbd5e1;
       border-radius: 4px;
     }
     .dark ::-webkit-scrollbar-thumb {
       background: #475569;
+      border-radius: 4px;
     }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
+    /* Virtual scroll table classes */
+    .v-table-container {
+      position: relative;
+      overflow-y: auto;
+      height: 500px;
     }
-
-    /* Map styling to match dark/light modes */
-    .map-light-tiles {
-      filter: grayscale(0.2) contrast(1.1);
+    .v-table-spacer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1;
+      pointer-events: none;
     }
-    .map-dark-tiles {
-      filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(1.2);
+    .v-table-content {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 2;
     }
   </style>
+
+  <script>
+    // Tailwind Dark Mode Config
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0284c7',
+              600: '#025a87',
+              900: '#0c4a6e',
+            }
+          }
+        }
+      }
+    }
+  </script>
 </head>
-<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300 font-sans overflow-x-hidden antialiased">
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 min-h-screen flex flex-col">
 
-  <!-- TOP DECORATION BANNER -->
-  <div class="h-1.5 w-full bg-gradient-to-r from-brand-600 via-blue-500 to-indigo-600"></div>
+  <!-- Top Global Alert / Realtime Status Bar -->
+  <div id="connection-warning" class="hidden bg-rose-600 text-white text-xs py-2 px-4 text-center font-semibold animate-pulse">
+    <i class="fa-solid fa-triangle-exclamation mr-2"></i> Koneksi realtime terputus. Mencoba menyambung ulang ke Google Sheets...
+  </div>
 
-  <!-- MAIN APP CONTAINER -->
-  <div class="flex h-screen overflow-hidden">
-    
-    <!-- SIDEBAR NAVIGASI -->
-    <aside id="sidebar" class="w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col z-30 transition-transform duration-300 md:translate-x-0 -translate-x-full absolute md:relative h-full">
-      
-      <!-- LOGO & PROFILE BRAND -->
-      <div class="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
-            <i data-lucide="shield-check" class="w-6 h-6"></i>
-          </div>
-          <div>
-            <h1 class="text-md font-bold tracking-tight text-slate-800 dark:text-white leading-none">PurworejoIT</h1>
-            <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1 uppercase tracking-wider font-semibold">Enterprise Monitor</p>
-          </div>
-        </div>
-        <button onclick="toggleSidebar()" class="md:hidden text-slate-500 hover:text-slate-800 dark:hover:text-white">
-          <i data-lucide="chevron-left" class="w-6 h-6"></i>
-        </button>
-      </div>
+  <!-- Main Container -->
+  <div class="flex flex-1 overflow-hidden h-screen">
 
-      <!-- GOOGLE SHEETS INTEGRATION & STATUS -->
-      <div class="p-4 bg-slate-50 dark:bg-slate-950/40 border-b border-slate-200 dark:border-slate-800 space-y-3">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Engine Realtime</span>
-          <span id="engine-badge" class="px-2 py-0.5 text-[10px] font-semibold bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300 rounded-full flex items-center gap-1">
-            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Aktif
-          </span>
-        </div>
-
-        <!-- Connection Details -->
-        <div class="text-[11px] space-y-1 text-slate-500 dark:text-slate-400">
-          <div class="flex justify-between">
-            <span>Status:</span>
-            <span id="status-conn" class="font-semibold text-emerald-600 dark:text-emerald-400">Terhubung</span>
-          </div>
-          <div class="flex justify-between">
-            <span>Update Terakhir:</span>
-            <span id="status-time" class="font-semibold">04:59:00 WIB</span>
-          </div>
-        </div>
-
-        <!-- Source Toggle / Sheets Link Input -->
-        <div class="space-y-1.5 pt-1.5 border-t border-slate-200 dark:border-slate-800">
-          <label class="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block">Sumber URL Google Sheets JSON / Apps Script:</label>
-          <div class="flex gap-1.5">
-            <input type="text" id="sheets-url-input" placeholder="Masukkan URL API/Sheets..." class="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500" />
-            <button onclick="setNewSheetsEndpoint()" class="bg-brand-600 hover:bg-brand-700 text-white rounded-lg px-2 py-1 text-xs font-semibold transition flex items-center justify-center">
-              <i data-lucide="link" class="w-3.5 h-3.5"></i>
-            </button>
-          </div>
-          <p class="text-[9px] text-slate-400 dark:text-slate-500">Mendukung format Google Sheets Publik atau deploy Apps Script JSON.</p>
-        </div>
-
-        <!-- Refresh Interval Selector -->
-        <div class="flex items-center justify-between pt-1">
-          <label class="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Auto Refresh:</label>
-          <select id="refresh-interval-select" onchange="changeRefreshInterval()" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs rounded px-1.5 py-0.5 focus:outline-none">
-            <option value="10">10 Detik</option>
-            <option value="30" selected>30 Detik</option>
-            <option value="60">60 Detik</option>
-            <option value="300">5 Menit</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- NAVIGASI UTAMA -->
-      <nav class="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-        <button onclick="switchTab('ringkasan')" id="nav-ringkasan" class="nav-btn w-full flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl bg-brand-50 dark:bg-slate-800 text-brand-600 dark:text-white transition">
-          <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i> Ringkasan Utama
-        </button>
-        <button onclick="switchTab('visualisasi')" id="nav-visualisasi" class="nav-btn w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-950 dark:hover:text-white transition">
-          <i data-lucide="bar-chart-3" class="w-5 h-5 mr-3"></i> Analisis & Grafik
-        </button>
-        <button onclick="switchTab('peta')" id="nav-peta" class="nav-btn w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-950 dark:hover:text-white transition">
-          <i data-lucide="map" class="w-5 h-5 mr-3"></i> Peta LC (1D-INTERNAL)
-        </button>
-        <button onclick="switchTab('tabel')" id="nav-tabel" class="nav-btn w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-950 dark:hover:text-white transition">
-          <i data-lucide="table-2" class="w-5 h-5 mr-3"></i> Master Tabel Data
-        </button>
-        <button onclick="switchTab('insight')" id="nav-insight" class="nav-btn w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-950 dark:hover:text-white transition">
-          <i data-lucide="sparkles" class="w-5 h-5 mr-3"></i> Insight AI Realtime
-        </button>
-        <button onclick="switchTab('tentang')" id="nav-tentang" class="nav-btn w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-950 dark:hover:text-white transition">
-          <i data-lucide="info" class="w-5 h-5 mr-3"></i> Tentang Aplikasi
-        </button>
-      </nav>
-
-      <!-- LIGHT/DARK TOGGLE & PERFORMANCE STATUS -->
-      <div class="p-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
-        <!-- Performance Mode Status -->
-        <div id="perf-mode-container" class="hidden">
-          <div class="p-2.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 flex items-center space-x-2">
-            <span class="flex h-2 w-2 relative">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-            </span>
-            <div class="flex-1">
-              <p class="text-[10px] font-bold text-indigo-800 dark:text-indigo-300 uppercase leading-none">Enterprise Perf Mode</p>
-              <p class="text-[9px] text-indigo-500 dark:text-indigo-400 mt-0.5">Optimasi Memori virtual rendering aktif (>10k baris)</p>
+    <!-- SIDEBAR NAVIGATION -->
+    <aside id="sidebar" class="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between transition-all duration-300 z-30 shrink-0">
+      <!-- Sidebar Header -->
+      <div>
+        <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <div class="p-2 bg-brand-500 text-white rounded-lg shadow-md">
+              <i class="fa-solid fa-chart-line text-lg"></i>
+            </div>
+            <div>
+              <h1 class="font-bold text-sm leading-tight">PurworejoIT</h1>
+              <p class="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Enterprise Systems</p>
             </div>
           </div>
         </div>
 
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Mode Tampilan</span>
-          <button onclick="toggleDarkMode()" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
-            <i id="theme-icon" data-lucide="moon" class="w-4 h-4 text-slate-700 dark:text-slate-200"></i>
+        <!-- Sidebar Menu Items -->
+        <nav class="p-4 space-y-1.5">
+          
+          <button onclick="switchTab('tab-summary')" id="btn-tab-summary" class="nav-item flex items-center w-full px-4 py-3 text-sm font-semibold rounded-xl text-brand-500 bg-brand-50 dark:bg-brand-950/40 transition-all">
+            <i class="fa-solid fa-gauge-high mr-3 text-lg"></i> Ringkasan Utama
           </button>
+          
+          <button onclick="switchTab('tab-charts')" id="btn-tab-charts" class="nav-item flex items-center w-full px-4 py-3 text-sm font-medium rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all">
+            <i class="fa-solid fa-chart-pie mr-3 text-lg"></i> Analisis Visual
+          </button>
+          
+          <button onclick="switchTab('tab-table')" id="btn-tab-table" class="nav-item flex items-center w-full px-4 py-3 text-sm font-medium rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all">
+            <i class="fa-solid fa-table-list mr-3 text-lg"></i> Data Transaksi (LC)
+          </button>
+          
+          <button onclick="switchTab('tab-ai')" id="btn-tab-ai" class="nav-item flex items-center w-full px-4 py-3 text-sm font-medium rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all">
+            <i class="fa-solid fa-brain mr-3 text-lg"></i> Smart AI Insights
+          </button>
+
+
+        </nav>
+      </div>
+
+      <!-- Sidebar Footer / Dark Mode Toggle -->
+      <div class="p-4 border-t border-slate-100 dark:border-slate-800 space-y-3 bg-slate-50/50 dark:bg-slate-900/40">
+        <!-- Performance indicator badge -->
+        <div id="perf-badge" class="hidden flex items-center justify-between p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
+          <span><i class="fa-solid fa-bolt mr-1"></i> PERFORMANCE MODE</span>
+          <span class="px-1.5 py-0.5 rounded bg-emerald-500 text-white">AKTIF</span>
         </div>
 
-        <!-- Copyright -->
-        <div class="text-[10px] text-center text-slate-400 dark:text-slate-500 leading-normal">
-          <p>© 2026 PurworejoIT.com</p>
-          <a href="https://lynk.id/berdigital" target="_blank" class="hover:underline hover:text-brand-500">lynk.id/berdigital</a>
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Tema Dashboard</span>
+          <button onclick="toggleDarkMode()" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:scale-105 active:scale-95 transition-all">
+            <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
+          </button>
         </div>
       </div>
     </aside>
 
-    <!-- CONTENT WRAPPER -->
-    <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-      
-      <!-- HEADER -->
-      <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-6 z-10">
-        <div class="flex items-center space-x-3">
-          <button onclick="toggleSidebar()" class="md:hidden text-slate-500 hover:text-slate-800 dark:hover:text-white mr-2">
-            <i data-lucide="menu" class="w-6 h-6"></i>
-          </button>
-          <div class="flex flex-col">
-            <div class="flex items-center gap-2">
-              <h2 id="source-name-header" class="text-md font-bold text-slate-800 dark:text-white truncate max-w-xs sm:max-w-md">Dashboard OLF Bagus - Dashboard_Monitoring.csv</h2>
-              <span id="data-count-badge" class="px-2 py-0.5 text-xs font-bold rounded-md bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-300">12.500 data</span>
+    <!-- MAIN WORKSPACE -->
+    <main class="flex-1 flex flex-col overflow-hidden min-w-0">
+      <!-- HEADER BAR -->
+      <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between shadow-sm z-10">
+        <!-- Title & Status Info -->
+        <div class="flex flex-col md:flex-row md:items-center space-y-1 md:space-y-0 md:space-x-4">
+          <div>
+            <h2 class="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-50">Monitoring LC Dashboard</h2>
+            <div class="flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <span id="sheet-indicator" class="font-semibold"><i class="fa-solid fa-file-excel mr-1 text-emerald-600"></i> Memuat...</span>
+              <span class="text-slate-300 dark:text-slate-700">|</span>
+              <span id="record-count"><i class="fa-solid fa-database mr-1"></i> ... Baris</span>
             </div>
-            <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Sistem Monitoring Logistik & Kinerja OLF Realtime</p>
           </div>
         </div>
 
-        <!-- TOP BAR ACTIONS -->
-        <div class="flex items-center space-x-2">
-          <!-- Carrier SDA Quick Toggle badge -->
-          <button id="sda-filter-badge" onclick="toggleCarrierSdaFilter()" class="hidden sm:flex items-center space-x-1 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-semibold rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900 transition">
-            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
-            <span>Carrier: 1D-INTERNAL (SDA)</span>
-          </button>
+        <!-- Realtime Controls & Refresh Engine -->
+        <div class="flex items-center space-x-3">
+          <!-- Live Status Indicator -->
+          <div class="flex items-center space-x-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <div class="text-[10px] text-left">
+              <p class="font-bold text-slate-700 dark:text-slate-300 leading-none">Realtime Aktif</p>
+              <p id="last-update-time" class="text-slate-400 mt-0.5 leading-none">Terakhir: --</p>
+            </div>
+          </div>
 
-          <!-- National Command Mode Slideshow -->
-          <button onclick="startNationalMonitoringMode()" class="flex items-center space-x-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg transition shadow-sm">
-            <i data-lucide="monitor-play" class="w-4 h-4"></i>
-            <span class="hidden lg:inline">Mode Monitoring Nasional</span>
-          </button>
+          <!-- Interval Selector -->
+          <div class="relative">
+            <select id="update-interval" onchange="changeRefreshInterval(this.value)" class="appearance-none pl-3 pr-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer">
+              <option value="10000">⏱️ Auto: 10 Detik</option>
+              <option value="30000" selected>⏱️ Auto: 30 Detik</option>
+              <option value="60000">⏱️ Auto: 1 Menit</option>
+              <option value="300000">⏱️ Auto: 5 Menit</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400">
+              <i class="fa-solid fa-chevron-down text-[10px]"></i>
+            </div>
+          </div>
 
-          <!-- Refresh Now -->
-          <button onclick="manualRefreshData()" class="p-2 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition" title="Refresh Data Instan">
-            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-          </button>
-
-          <!-- Export PNG -->
-          <button onclick="exportDashboardPNG()" class="p-2 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition" title="Ekspor PNG">
-            <i data-lucide="image" class="w-4 h-4"></i>
-          </button>
-
-          <!-- Export PDF -->
-          <button onclick="exportDashboardPDF()" class="p-2 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition" title="Ekspor PDF">
-            <i data-lucide="file-text" class="w-4 h-4"></i>
+          <!-- Actions Trigger -->
+          <button onclick="manualRefresh()" id="btn-manual-refresh" class="p-2.5 bg-brand-50 hover:bg-brand-100 text-brand-600 dark:bg-brand-950/20 dark:hover:bg-brand-950/40 dark:text-brand-400 rounded-xl border border-brand-200 dark:border-brand-900 transition-all active:scale-95 shadow-sm" title="Refresh Manual">
+            <i class="fa-solid fa-arrows-rotate" id="refresh-spin-icon"></i>
           </button>
         </div>
       </header>
 
-      <!-- GLOBAL FILTER BAR -->
-      <section class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3 flex flex-wrap gap-4 items-center">
-        <div class="flex items-center space-x-1">
-          <i data-lucide="filter" class="w-4 h-4 text-slate-400"></i>
-          <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Filter Global:</span>
-        </div>
+      <!-- GLOBAL INTERACTIVE FILTER PANEL -->
+      <section class="bg-white dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 px-6 py-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 shadow-inner">
         
-        <!-- Filter Area -->
-        <div class="flex flex-col min-w-[140px]">
-          <span class="text-[9px] text-slate-400 font-bold uppercase leading-none mb-1">Area Pengiriman</span>
-          <select id="filter-area" onchange="applyGlobalFilters()" class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-brand-500">
-            <option value="all">Semua Area</option>
-          </select>
-        </div>
-
-        <!-- Filter Carrier -->
-        <div class="flex flex-col min-w-[140px]">
-          <span class="text-[9px] text-slate-400 font-bold uppercase leading-none mb-1">Carrier</span>
-          <select id="filter-carrier" onchange="applyGlobalFilters()" class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-brand-500">
-            <option value="all">Semua Carrier</option>
-            <option value="1D-INTERNAL (SDA)">1D-INTERNAL (SDA)</option>
-          </select>
-        </div>
-
-        <!-- Filter Hit/Miss -->
-        <div class="flex flex-col min-w-[110px]">
-          <span class="text-[9px] text-slate-400 font-bold uppercase leading-none mb-1">Status Kinerja</span>
-          <select id="filter-hitmiss" onchange="applyGlobalFilters()" class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-brand-500">
-            <option value="all">Semua</option>
-            <option value="HIT">HIT (Sesuai Target)</option>
-            <option value="MISS">MISS (Di Bawah Target)</option>
-          </select>
-        </div>
-
-        <!-- Filter Rentang Tanggal -->
-        <div class="flex flex-col min-w-[240px]">
-          <span class="text-[9px] text-slate-400 font-bold uppercase leading-none mb-1">Rentang Tanggal</span>
-          <div class="flex items-center space-x-1.5">
-            <input type="date" id="filter-date-start" onchange="applyGlobalFilters()" class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-200 focus:outline-none" />
-            <span class="text-xs text-slate-400">-</span>
-            <input type="date" id="filter-date-end" onchange="applyGlobalFilters()" class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-200 focus:outline-none" />
+        <!-- 2. Filter Area -->
+        <div>
+          <label class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Filter Area Pengiriman</label>
+          <div class="relative">
+            <select id="filter-area" onchange="applyGlobalFilters()" class="w-full text-xs font-semibold py-2 pl-3 pr-8 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none dark:text-slate-200 cursor-pointer">
+              <option value="ALL">Semua Area</option>
+            </select>
           </div>
         </div>
-
-        <!-- Reset Button -->
-        <button onclick="resetGlobalFilters()" class="self-end px-3 py-1.5 text-xs text-slate-600 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400 font-semibold flex items-center gap-1 transition">
-          <i data-lucide="x" class="w-3.5 h-3.5"></i> Reset Filter
-        </button>
+        <!-- 3. Filter Status -->
+        <div>
+          <label class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Filter Status OLF</label>
+          <div class="relative">
+            <select id="filter-status" onchange="applyGlobalFilters()" class="w-full text-xs font-semibold py-2 pl-3 pr-8 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none dark:text-slate-200 cursor-pointer">
+              <option value="ALL">Semua Status</option>
+              <option value="HIT">HIT Only</option>
+              <option value="MISS">MISS Only</option>
+            </select>
+          </div>
+        </div>
+        <!-- 4. Filter Tanggal Spesifik -->
+        <div>
+          <label class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Filter Tanggal Spesifik</label>
+          <div class="relative">
+            <input type="date" id="filter-date" onchange="onDateFilterChange()" class="w-full text-xs font-semibold py-2 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none dark:text-slate-200 cursor-pointer">
+          </div>
+        </div>
+        <!-- 5. Filter Bulan -->
+        <div>
+          <label class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Pilih Bulan (1 Bulan)</label>
+          <div class="relative">
+            <input type="month" id="filter-month" onchange="onMonthFilterChange()" class="w-full text-xs font-semibold py-2 px-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none dark:text-slate-200 cursor-pointer">
+          </div>
+        </div>
+        <!-- 6. Actions Panel -->
+        <div class="flex items-end space-x-2">
+          <button onclick="resetGlobalFilters()" class="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-xl transition-all shadow-sm">
+            <i class="fa-solid fa-filter-circle-xmark mr-1"></i> Reset
+          </button>
+          <button onclick="setFilterToCurrentMonth()" class="px-3 py-2 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-xl transition-all shadow-sm" title="Tampilkan Bulan Ini">
+            <i class="fa-solid fa-calendar-days"></i> Bulan Ini
+          </button>
+        </div>
       </section>
 
-      <!-- ALERT ERROR NOTIFICATION (FOR REALTIME SAFETY ENGINE) -->
-      <div id="alert-error" class="hidden absolute top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4">
-        <div class="bg-red-500 text-white p-3.5 rounded-2xl shadow-2xl flex items-center justify-between border border-red-400">
-          <div class="flex items-center space-x-2">
-            <i data-lucide="cloud-off" class="w-5 h-5 text-red-100 shrink-0"></i>
-            <p class="text-xs font-semibold">Koneksi realtime terputus. Mencoba menyambung ulang...</p>
-          </div>
-          <span class="flex h-2.5 w-2.5 relative">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-200 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
-          </span>
-        </div>
-      </div>
+      <!-- VIEWPORTS CONTENT -->
+      <div class="flex-1 overflow-y-auto p-6" id="dashboard-content">
 
-      <!-- MAIN SCROLLABLE CONTENT BODY -->
-      <div id="main-content-container" class="flex-1 overflow-y-auto p-6 space-y-6">
-
-        <!-- TAB: RINGKASAN UTAMA -->
-        <div id="tab-ringkasan" class="tab-content space-y-6">
-          
-          <!-- SUMMARY METRIC CARDS -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <!-- Total Data -->
-            <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-              <div>
-                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Total Record Baris</span>
-                <span id="metric-total-rows" class="text-3xl font-extrabold text-slate-800 dark:text-white mt-1 block">12.500</span>
-                <p id="metric-sheet-info" class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Diproses dari seluruh lembar kerja</p>
+        <!-- ================= TAB SUMMARY ================= -->
+        <div id="tab-summary" class="tab-pane space-y-6">
+          <!-- Summary Cards Grid -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Card Total Rows -->
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/50 flex items-center space-x-4">
+              <div class="p-4 bg-brand-500/10 text-brand-600 dark:text-brand-400 rounded-xl text-2xl">
+                <i class="fa-solid fa-truck-ramp-box"></i>
               </div>
-              <div class="w-12 h-12 rounded-xl bg-brand-50 dark:bg-slate-800 text-brand-600 dark:text-brand-400 flex items-center justify-center">
-                <i data-lucide="database" class="w-6 h-6"></i>
+              <div>
+                <p class="text-xs font-medium text-slate-400 dark:text-slate-500">Total Pengiriman</p>
+                <h3 id="stat-total-delivery" class="text-2xl font-extrabold tracking-tight mt-0.5">--</h3>
               </div>
             </div>
 
-            <!-- Total Kolom -->
-            <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-              <div>
-                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Total Kolom Diproses</span>
-                <span id="metric-total-cols" class="text-3xl font-extrabold text-slate-800 dark:text-white mt-1 block">13</span>
-                <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Sesuai arsitektur master CSV</p>
+            <!-- Card Avg OLF -->
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/50 flex items-center space-x-4">
+              <div class="p-4 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-xl text-2xl">
+                <i class="fa-solid fa-chart-line"></i>
               </div>
-              <div class="w-12 h-12 rounded-xl bg-amber-50 dark:bg-slate-800 text-amber-500 dark:text-amber-400 flex items-center justify-center">
-                <i data-lucide="columns-4" class="w-6 h-6"></i>
+              <div>
+                <p class="text-xs font-medium text-slate-400 dark:text-slate-500">Rata-Rata OLF</p>
+                <h3 id="stat-avg-olf" class="text-2xl font-extrabold tracking-tight mt-0.5">-- %</h3>
               </div>
             </div>
 
-            <!-- Hit Rate / Average OLF -->
-            <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-              <div>
-                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Rata-rata OLF %</span>
-                <span id="metric-avg-olf" class="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 block">78,54%</span>
-                <p id="metric-hit-rate" class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Rasio HIT: 81.2% (Memenuhi Target)</p>
+            <!-- Card HIT Ratio -->
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/50 flex items-center space-x-4">
+              <div id="stat-hit-color" class="p-4 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl text-2xl">
+                <i class="fa-solid fa-circle-check"></i>
               </div>
-              <div class="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <i data-lucide="percent" class="w-6 h-6"></i>
+              <div>
+                <p class="text-xs font-medium text-slate-400 dark:text-slate-500">Persentase HIT</p>
+                <h3 id="stat-hit-ratio" class="text-2xl font-extrabold tracking-tight mt-0.5">-- %</h3>
               </div>
             </div>
 
-            <!-- Total Order & Stop -->
-            <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-              <div>
-                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Total Orders / Stops</span>
-                <span id="metric-orders-stops" class="text-3xl font-extrabold text-slate-800 dark:text-white mt-1 block">154K / 112K</span>
-                <p id="metric-peak-date" class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Puncak: 28 Juni 2026</p>
+            <!-- Card Total Stop/Order -->
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/50 flex items-center space-x-4">
+              <div class="p-4 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl text-2xl">
+                <i class="fa-solid fa-location-dot"></i>
               </div>
-              <div class="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                <i data-lucide="truck" class="w-6 h-6"></i>
+              <div>
+                <p class="text-xs font-medium text-slate-400 dark:text-slate-500">Stop vs Order</p>
+                <h3 id="stat-stop-order" class="text-2xl font-extrabold tracking-tight mt-0.5">-- / --</h3>
               </div>
             </div>
           </div>
 
-          <!-- DETAILED HISTOGRAM & MIN/MAX METRICS -->
+          <!-- Secondary Statistical Metrics Grid -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            
+            <div class="bg-slate-100 dark:bg-slate-800/40 p-4 rounded-xl text-center">
+              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Area</p>
+              <p id="sub-total-area" class="text-lg font-extrabold mt-1 text-slate-700 dark:text-slate-300">--</p>
+            </div>
+            <div class="bg-slate-100 dark:bg-slate-800/40 p-4 rounded-xl text-center">
+              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">OLF Maksimal</p>
+              <p id="sub-max-olf" class="text-lg font-extrabold mt-1 text-emerald-600 dark:text-emerald-400">--</p>
+            </div>
+            <div class="bg-slate-100 dark:bg-slate-800/40 p-4 rounded-xl text-center">
+              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">OLF Minimal</p>
+              <p id="sub-min-olf" class="text-lg font-extrabold mt-1 text-rose-500 dark:text-rose-400">--</p>
+            </div>
+          </div>
+
+          <!-- Two Column Summary Visuals -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <!-- Statistical Insight Card -->
-            <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-              <div>
-                <h3 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">Statistik Lanjut Logistik</h3>
-                
-                <div class="space-y-3.5">
-                  <div class="flex justify-between items-center text-xs">
-                    <span class="text-slate-500 dark:text-slate-400">Nilai OLF Maksimum:</span>
-                    <span id="stat-max-olf" class="font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md">115,00%</span>
-                  </div>
-                  <div class="flex justify-between items-center text-xs">
-                    <span class="text-slate-500 dark:text-slate-400">Nilai OLF Minimum:</span>
-                    <span id="stat-min-olf" class="font-extrabold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/60 px-2 py-0.5 rounded-md">0,00%</span>
-                  </div>
-                  <div class="flex justify-between items-center text-xs">
-                    <span class="text-slate-500 dark:text-slate-400">Kategori Area Teraktif:</span>
-                    <span id="stat-top-area" class="font-bold text-slate-700 dark:text-slate-300 truncate max-w-[150px]">SURABAYA BARAT</span>
-                  </div>
-                  <div class="flex justify-between items-center text-xs">
-                    <span class="text-slate-500 dark:text-slate-400">Tipe Armada Utama:</span>
-                    <span id="stat-top-fleet" class="font-bold text-slate-700 dark:text-slate-300 truncate max-w-[150px]">CDE LONG CHASSIS</span>
-                  </div>
-                  <div class="flex justify-between items-center text-xs">
-                    <span class="text-slate-500 dark:text-slate-400">Faktor Rata-rata Ritase:</span>
-                    <span id="stat-avg-ritase" class="font-bold text-slate-700 dark:text-slate-300">RIT 1 (94.2%)</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <span class="text-[11px] font-semibold text-slate-400">Mesin Penghitung AI Aktif</span>
-                <span class="px-2 py-0.5 text-[9px] font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 rounded">100% Terverifikasi</span>
-              </div>
-            </div>
-
-            <!-- Smart Auto-Generated KPI Chart 1 -->
-            <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm lg:col-span-2">
-              <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100 dark:border-slate-800">
-                <h3 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-                  <i data-lucide="sparkles" class="w-4 h-4 text-brand-500"></i> Smart Engine: Tren OLF Bulanan
-                </h3>
-                <span class="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-500 font-bold uppercase">Line Chart</span>
-              </div>
-              <div id="chart-main-line" class="w-full h-64"></div>
-            </div>
-          </div>
-
-          <!-- RECENT SHIPMENT LOGS FROM "1D-INTERNAL (SDA)" -->
-          <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h3 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">Aktivitas Pengiriman Terbaru (1D-INTERNAL SDA)</h3>
-                <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Menampilkan pengiriman yang ditangani armada internal Sidoarjo</p>
-              </div>
-              <button onclick="switchTab('tabel')" class="text-xs font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 hover:underline">Lihat Semua Data</button>
+            <!-- Quick Pie Chart (Left/Small) -->
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/50">
+              <h4 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Distribusi HIT vs MISS</h4>
+              <div id="chart-quick-pie" class="h-64"></div>
             </div>
             
-            <div class="overflow-x-auto">
-              <table class="w-full text-left border-collapse">
-                <thead>
-                  <tr class="border-b border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    <th class="py-3 px-4">SI Number</th>
-                    <th class="py-3 px-4">Lane No Zyllem</th>
-                    <th class="py-3 px-4">Nopol</th>
-                    <th class="py-3 px-4">Tipe Armada</th>
-                    <th class="py-3 px-4">Area Pengiriman</th>
-                    <th class="py-3 px-4">Order / Stop</th>
-                    <th class="py-3 px-4 text-right">OLF</th>
-                    <th class="py-3 px-4 text-center">Status</th>
-                  </tr>
-                </thead>
-                <tbody id="quick-shipment-tbody" class="divide-y divide-slate-100 dark:divide-slate-800/50 text-xs">
-                  <!-- Generated Dynamically -->
-                </tbody>
-              </table>
+            <!-- Quick Trend Bar Chart (Right/Wide) -->
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/50 lg:col-span-2">
+              <h4 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Volume Pengiriman Harian</h4>
+              <div id="chart-quick-trend" class="h-64"></div>
             </div>
           </div>
         </div>
 
-        <!-- TAB: VISUALISASI / ANALISIS GRAFIK -->
-        <div id="tab-visualisasi" class="tab-content hidden space-y-6">
+        <!-- ================= TAB CHARTS ================= -->
+        <div id="tab-charts" class="tab-pane hidden space-y-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-bold text-slate-800 dark:text-slate-200"><i class="fa-solid fa-gears mr-2 text-brand-500"></i>Smart AI Visualization Engine</h3>
+            <span class="text-xs px-2.5 py-1 bg-brand-100 text-brand-700 dark:bg-brand-950/40 dark:text-brand-400 rounded-full font-semibold">Tipe Grafik Otomatis Aktif</span>
+          </div>
+
+          <!-- Main Comprehensive Charts -->
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            <!-- Chart 1: Bar Chart Area Pengiriman -->
-            <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100 dark:border-slate-800">
-                <h3 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">Kinerja OLF per Area Pengiriman</h3>
-                <span class="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-500 font-bold uppercase">Bar Chart</span>
-              </div>
-              <div id="chart-area-bar" class="w-full h-80"></div>
+            <!-- Line Chart: Trend Stop vs Order -->
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/50">
+              <h4 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Tren Stop & Order Kumulatif</h4>
+              <div id="chart-trend-stop-order" class="h-80"></div>
             </div>
 
-            <!-- Chart 2: Pie Chart Distribusi Armada -->
-            <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100 dark:border-slate-800">
-                <h3 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">Rasio Tipe Armada (Fleet Distribution)</h3>
-                <span class="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-500 font-bold uppercase">Pie Chart</span>
-              </div>
-              <div id="chart-fleet-pie" class="w-full h-80"></div>
+            <!-- Bar Chart: Top 10 Area Delivery -->
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700/50">
+              <h4 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Top 10 Area Pengiriman Teraktif</h4>
+              <div id="chart-area-volume" class="h-80"></div>
             </div>
 
-            <!-- Chart 3: Area Chart Volume Orders & Stops -->
-            <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100 dark:border-slate-800">
-                <h3 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">Volume Orders vs Stops (Trend Historis)</h3>
-                <span class="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-500 font-bold uppercase">Area Chart</span>
-              </div>
-              <div id="chart-order-area" class="w-full h-80"></div>
-            </div>
-
-            <!-- Chart 4: Distribution Chart Hit Rate vs Miss Rate -->
-            <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100 dark:border-slate-800">
-                <h3 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">Kepatuhan Pengiriman (HIT vs MISS Rate)</h3>
-                <span class="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-500 font-bold uppercase">Distribution Chart</span>
-              </div>
-              <div id="chart-compliance-pie" class="w-full h-80"></div>
-            </div>
           </div>
         </div>
 
-        <!-- TAB: PETA LOKASI COURIER LC (1D-INTERNAL SDA) -->
-        <div id="tab-peta" class="tab-content hidden space-y-6">
-          <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-[650px]">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <div>
-                <h3 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                  <i data-lucide="map-pin" class="text-red-500"></i> Peta Lokasi Pengiriman & Hub Kinerja (1D-INTERNAL SDA)
-                </h3>
-                <p class="text-xs text-slate-400 mt-1">Memetakan secara real-time berdasarkan area pengiriman aktif di Jawa Timur.</p>
-              </div>
+        <!-- ================= TAB TABLE (VIRTUAL SCROLLING) ================= -->
+        <div id="tab-table" class="tab-pane hidden space-y-4">
+          <!-- Table Header / Search Tools -->
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm">
+            <div class="relative w-full sm:w-80">
+              <input type="text" id="table-search" oninput="handleTableSearch()" placeholder="Cari NOPOL, Lane..." class="w-full text-xs py-2.5 pl-9 pr-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500">
+              <span class="absolute left-3.5 top-3.5 text-slate-400 text-xs">
+                <i class="fa-solid fa-magnifying-glass"></i>
+              </span>
+            </div>
+
+            <div class="flex items-center space-x-2 w-full sm:w-auto justify-end">
+              <button onclick="exportToCSV()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center">
+                <i class="fa-solid fa-file-csv mr-1.5"></i> Ekspor CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- Virtual Table Viewport Wrapper -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700/50 overflow-hidden shadow-md">
+            <!-- Table Headers -->
+            <div class="grid grid-cols-12 bg-slate-50 dark:bg-slate-900/80 px-4 py-3 border-b border-slate-100 dark:border-slate-700 text-xs font-bold uppercase tracking-wider text-slate-400 select-none">
+              <div class="col-span-2">SI Number</div>
+              <div class="col-span-3 ">Lane / RIT</div>
               
-              <!-- Quick Carrier SDA Filter lock -->
-              <div class="flex items-center space-x-2">
-                <label class="text-xs font-semibold text-slate-600 dark:text-slate-400">Filter Lokasi:</label>
-                <button onclick="setMapCarrierFilter(true)" id="btn-map-sda-only" class="px-2.5 py-1.5 bg-brand-600 text-white text-[11px] font-bold rounded-lg transition">Hanya SDA-INTERNAL</button>
-                <button onclick="setMapCarrierFilter(false)" id="btn-map-all-carriers" class="px-2.5 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 text-[11px] font-bold rounded-lg transition">Semua Carrier</button>
+              <div class="col-span-2">Nopol / Type</div>
+              <div class="col-span-2">Area / Tanggal</div>
+              <div class="col-span-1 text-center">Stop/Order</div>
+              <div class="col-span-1 text-center">OLF</div>
+              <div class="col-span-1 text-center">Status</div>
+            </div>
+
+            <!-- Virtual Scroll Container -->
+            <div id="v-scroll-container" class="v-table-container scroll-smooth" onscroll="handleVirtualScroll()">
+              <div id="v-scroll-spacer" class="v-table-spacer"></div>
+              <div id="v-scroll-content" class="v-table-content">
+                <!-- Rows injected dynamically via JS Virtualization -->
               </div>
             </div>
 
-            <!-- MAP CONTAINER ELEMENT -->
-            <div id="leaflet-map" class="flex-1 rounded-2xl overflow-hidden shadow-inner border border-slate-200 dark:border-slate-800 z-10"></div>
+            <div class="bg-slate-50 dark:bg-slate-900 px-4 py-2 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <span id="v-scroll-info">Menampilkan baris 0 - 0 dari 0 baris data</span>
+              <span class="text-[10px] px-2 py-1 bg-amber-500/10 text-amber-500 rounded">Virtual Scroll Engine Aktif</span>
+            </div>
           </div>
         </div>
 
-        <!-- TAB: MASTER TABEL DATA (VIRTUAL RENDERING) -->
-        <div id="tab-tabel" class="tab-content hidden space-y-6">
-          <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col h-[700px]">
-            
-            <!-- TABLE CONTROLS (SEARCH, TOTAL & EXPORT) -->
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-200 dark:border-slate-800">
-              <div class="flex items-center space-x-3 flex-1">
-                <!-- Search bar -->
-                <div class="relative max-w-sm w-full">
-                  <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                    <i data-lucide="search" class="w-4 h-4"></i>
-                  </span>
-                  <input type="text" id="table-search-input" onkeyup="handleTableSearch()" placeholder="Cari SI Number, Nopol, Armada..." class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500" />
+        <!-- ================= TAB SMART AI INSIGHTS ================= -->
+        <div id="tab-ai" class="tab-pane hidden space-y-6">
+          <div class="bg-gradient-to-r from-brand-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 opacity-10 text-9xl">
+              <i class="fa-solid fa-brain"></i>
+            </div>
+            <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div class="space-y-1">
+                <span class="text-[10px] uppercase font-extrabold tracking-widest bg-white/20 px-2.5 py-1 rounded">AI Analytics Engine</span>
+                <h3 class="text-xl font-bold">Generasi Insight Otomatis</h3>
+                <p class="text-sm text-brand-100 max-w-xl">Sistem PurworejoIT memproses keseluruhan data secara matematis dan logis tanpa sampling untuk menyusun analisis operasional yang akurat.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Strategic Recommendations Card -->
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-sm md:col-span-2 space-y-4">
+              <h4 class="text-xs font-bold uppercase tracking-widest text-slate-400"><i class="fa-solid fa-wand-magic-sparkles mr-1 text-indigo-500"></i> AI Strategic Recommendations</h4>
+              <div id="ai-insight-list" class="space-y-3.5 text-sm">
+                <!-- Dynamic AI recommendations -->
+              </div>
+            </div>
+
+            <!-- KPI & Productivity Speedometer (Logical) -->
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-sm space-y-4">
+              <h4 class="text-xs font-bold uppercase tracking-widest text-slate-400"><i class="fa-solid fa-gauge mr-1 text-amber-500"></i> Skor Kinerja Operasional</h4>
+              <div class="flex flex-col items-center justify-center pt-4">
+                <div class="relative flex items-center justify-center">
+                  <!-- Custom Gauge Indicator using CSS borders -->
+                  <div class="w-36 h-36 rounded-full border-8 border-slate-100 dark:border-slate-700"></div>
+                  <div id="ai-gauge-score-border" class="absolute w-36 h-36 rounded-full border-8 border-transparent border-t-brand-500 border-r-brand-500 rotate-[45deg] transition-all duration-1000"></div>
+                  <div class="absolute text-center">
+                    <span id="ai-gauge-score" class="text-3xl font-extrabold">0</span>
+                    <span class="text-xs font-bold text-slate-400 block mt-0.5">Skor Indeks</span>
+                  </div>
                 </div>
-                
-                <!-- Display virtual scroll stats -->
-                <div class="text-[11px] text-slate-400">
-                  Terfilter: <span id="table-filtered-count" class="font-bold text-slate-700 dark:text-slate-200">12,500</span> / <span id="table-total-count" class="font-bold">12,500</span> baris.
+                <div class="text-center mt-6">
+                  <p id="ai-gauge-verdict" class="text-sm font-bold text-emerald-500 uppercase tracking-wider">--</p>
+                  <p class="text-xs text-slate-400 mt-1 max-w-[180px] mx-auto">Skor dihitung berdasarkan rasio HIT Delivery OLF terhadap total order.</p>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
 
+        <!-- ================= TAB MONITORING NASIONAL ================= -->
+        <div id="tab-display" class="tab-pane hidden space-y-6">
+          <div class="bg-slate-900 border border-slate-800 text-white rounded-2xl p-6 shadow-2xl relative overflow-hidden flex flex-col justify-between space-y-6 min-h-[500px]">
+            <!-- Header Grid Area -->
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-3">
+                <div class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></div>
+                <div>
+                  <h3 class="text-base font-bold tracking-tight uppercase">MONITORING NASIONAL (Slideshow Mode)</h3>
+                  <p class="text-[10px] text-slate-400">COMMAND CENTER SCREEN - AUTO UPDATES</p>
+                </div>
+              </div>
               <div class="flex items-center space-x-2">
-                <span class="text-xs bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5">
-                  <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Virtual Rendering Aktif (60fps Scroll)
-                </span>
+                <button onclick="toggleSlideshow()" id="btn-slideshow-state" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-xs font-bold rounded-lg transition-all flex items-center">
+                  <i class="fa-solid fa-play mr-1.5"></i> JALANKAN SLIDESHOW
+                </button>
               </div>
             </div>
 
-            <!-- THE VIRTUAL SCROLLER TABLE VIEWPORT -->
-            <div id="virtual-table-viewport" class="flex-1 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl relative bg-slate-50 dark:bg-slate-950" onscroll="handleVirtualScroll()">
-              
-              <!-- Virtual Spacer for scroll depth -->
-              <div id="virtual-spacer" class="w-full" style="height: 0px;"></div>
-              
-              <!-- Absolute Element with dynamic offsets holding the table -->
-              <div id="virtual-table-content" class="absolute top-0 left-0 right-0 w-full">
-                <table class="w-full text-left border-collapse table-fixed">
-                  <thead class="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-10 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    <tr>
-                      <th class="py-3 px-4 w-[12%]">SI Number</th>
-                      <th class="py-3 px-4 w-[13%]">Lane Zyllem</th>
-                      <th class="py-3 px-4 w-[15%]">Carrier</th>
-                      <th class="py-3 px-4 w-[11%]">Nopol</th>
-                      <th class="py-3 px-4 w-[15%]">Tipe</th>
-                      <th class="py-3 px-4 w-[12%]">Area</th>
-                      <th class="py-3 px-4 w-[9%]">Stops</th>
-                      <th class="py-3 px-4 w-[9%]">Orders</th>
-                      <th class="py-3 px-4 w-[8%] text-right">OLF</th>
-                    </tr>
-                  </thead>
-                  <tbody id="virtual-table-tbody" class="divide-y divide-slate-200/50 dark:divide-slate-800/50 text-xs">
-                    <!-- Embedded programmatically via Virtual Scroll -->
-                  </tbody>
-                </table>
+            <!-- Slideshow content showing statistics inside dashboard TV style -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1 py-4 items-center">
+              <div class="bg-slate-950/80 p-6 rounded-2xl border border-slate-800 text-center space-y-2">
+                <p class="text-xs font-bold text-slate-100 tracking-wider uppercase">Pengiriman Hari Ini</p>
+                <p id="mon-stat-total" class="text-5xl font-extrabold text-brand-400">--</p>
+                <p class="text-[10px] text-slate-500">Kumulatif terproses</p>
               </div>
-
+              <div class="bg-slate-950/80 p-6 rounded-2xl border border-slate-800 text-center space-y-2">
+                <p class="text-xs font-bold text-slate-400 tracking-wider uppercase">Pencapaian OLF</p>
+                <p id="mon-stat-olf" class="text-5xl font-extrabold text-indigo-400">-- %</p>
+                <p class="text-[10px] text-slate-500">Rata-rata OLF</p>
+              </div>
+              <div class="bg-slate-950/80 p-6 rounded-2xl border border-slate-800 text-center space-y-2">
+                <p class="text-xs font-bold text-slate-400 tracking-wider uppercase">Skor Kepuasan HIT</p>
+                <p id="mon-stat-hit" class="text-5xl font-extrabold text-emerald-400">-- %</p>
+                <p class="text-[10px] text-slate-500">Keberhasilan kirim</p>
+              </div>
             </div>
 
+            <div class="bg-slate-950/40 p-4 border border-slate-800 rounded-xl flex items-center justify-between text-xs text-slate-400">
+              <p><i class="fa-solid fa-clock mr-1.5"></i> Durasi Transisi Slideshow: 10 detik per siklus halaman.</p>
+              <p id="mon-status-timer">Status: Berhenti</p>
+            </div>
           </div>
         </div>
 
-        <!-- TAB: INSIGHT AI REALTIME -->
-        <div id="tab-insight" class="tab-content hidden space-y-6">
-          <!-- TITLE -->
-          <div class="bg-gradient-to-r from-indigo-500 via-brand-600 to-blue-600 p-6 rounded-2xl text-white shadow-lg shadow-indigo-500/10 flex items-center justify-between">
-            <div>
-              <h2 class="text-xl font-bold flex items-center gap-2">
-                <i data-lucide="sparkles" class="text-amber-300"></i> Smart AI Insight Engine by PurworejoIT
-              </h2>
-              <p class="text-xs text-indigo-100 mt-1">Menggunakan analisis statistika otomatis untuk menyusun laporan performa logistik terkini.</p>
-            </div>
-            <span class="px-3 py-1 bg-white/20 backdrop-blur text-xs font-bold rounded-lg uppercase tracking-widest">Realtime Sync</span>
-          </div>
-
-          <!-- INSIGHT CARDS GRID -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            <!-- Performa Logistik Global -->
-            <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-              <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-800 pb-2">
-                <i data-lucide="bar-chart-2" class="text-brand-500"></i> Analisis Kinerja OLF Global
-              </h3>
-              <p id="ai-insight-performance" class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                Memproses perhitungan...
-              </p>
+        <!-- ================= TAB ABOUT ================= -->
+        <div id="tab-about" class="tab-pane hidden space-y-6">
+          <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700/50 p-6 shadow-sm space-y-6">
+            <div class="flex flex-col items-center justify-center text-center space-y-4 pt-4">
+              <div class="p-4 bg-brand-500/10 text-brand-500 rounded-full text-5xl">
+                <i class="fa-solid fa-code-branch animate-pulse"></i>
+              </div>
+              <h3 class="text-xl font-bold">PurworejoIT Enterprise Systems</h3>
+              <p class="text-xs text-slate-400 max-w-md">Solusi pemrosesan Big Data (100.000+ baris data) secara real-time dan berkinerja tinggi, dirancang untuk platform komputasi awan Google Apps Script.</p>
             </div>
 
-            <!-- Analisis Geografis / Rute Pengiriman -->
-            <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-              <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-800 pb-2">
-                <i data-lucide="map-pin" class="text-emerald-500"></i> Analisis Wilayah Distribusi Utama
-              </h3>
-              <p id="ai-insight-area" class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                Memproses analisis lokasi...
-              </p>
-            </div>
-
-            <!-- Analisis Armada & Efisiensi Ritase -->
-            <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-              <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-800 pb-2">
-                <i data-lucide="truck" class="text-indigo-500"></i> Efisiensi Armada & Utilisasi
-              </h3>
-              <p id="ai-insight-fleet" class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                Memproses analisis armada...
-              </p>
-            </div>
-
-            <!-- Anomali & Rekomendasi Mitigasi -->
-            <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-              <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-800 pb-2">
-                <i data-lucide="alert-triangle" class="text-amber-500"></i> Anomali & Rekomendasi AI
-              </h3>
-              <p id="ai-insight-anomaly" class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                Mengevaluasi tren deviasi...
-              </p>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- TAB: TENTANG APLIKASI -->
-        <div id="tab-tentang" class="tab-content hidden space-y-6">
-          <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
-            <div>
-              <h3 class="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-wider">Tentang Enterprise Dashboard System</h3>
-              <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Platform Pemantauan Real-Time & Big Data Terpadu</p>
-            </div>
-
-            <div class="prose dark:prose-invert text-sm text-slate-600 dark:text-slate-300 space-y-4">
-              <p>
-                <strong>Enterprise Dashboard System by PurworejoIT</strong> dibangun menggunakan arsitektur mutakhir untuk memvisualisasikan data dalam skala masif secara real-time. Dengan mengintegrasikan <strong>ECharts</strong> untuk rendering grafis, <strong>Leaflet JS</strong> untuk pelacakan geografis, dan <strong>Virtual Table Rendering</strong>, sistem dapat mempertahankan kinerja 60FPS bahkan ketika menyajikan data logistik melebihi 100.000+ baris.
-              </p>
-
-              <h4 class="font-bold text-slate-800 dark:text-white pt-2 text-xs uppercase tracking-wider">Arsitektur Integrasi Real-Time:</h4>
-              <ul class="list-disc pl-5 space-y-1.5">
-                <li><strong>Dynamic Endpoint Fetching:</strong> Melakukan query asinkron berbasis interval ke Google Sheets API atau Google Apps Script Web App tanpa me-reload aplikasi.</li>
-                <li><strong>Auto-Refresh Loop:</strong> Berjalan di background menggunakan interval aman dengan sistem auto-retry jika terjadi kegagalan jaringan atau timeout.</li>
-                <li><strong>Virtual Scroll Engine:</strong> Hanya menyajikan elemen baris tabel yang terlihat pada layar (viewport) untuk menghemat penggunaan RAM pada browser desktop maupun mobile.</li>
-                <li><strong>Smart Mapping:</strong> Menganalisis nama area (Surabaya, Sidoarjo, Mojokerto, Gresik) dan memetakan koordinat presisi untuk visualisasi pengiriman logistik internal.</li>
-              </ul>
-            </div>
-
-            <div class="pt-6 border-t border-slate-200 dark:border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                <span class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Developer & Integrator:</span>
-                <p class="text-slate-600 dark:text-slate-400">PurworejoIT Software Engineering</p>
-                <p class="text-slate-500 dark:text-slate-500 mt-1">Situs Web: <a href="https://PurworejoIT.com" target="_blank" class="text-brand-600 hover:underline">PurworejoIT.com</a></p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-100 dark:border-slate-700">
+              <div class="space-y-3">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Spesifikasi Engine Dashboard</h4>
+                <ul class="space-y-2 text-xs">
+                  <li class="flex items-center text-slate-600 dark:text-slate-300"><i class="fa-solid fa-circle-check text-emerald-500 mr-2"></i> Apache ECharts Rendering Engine</li>
+                  <li class="flex items-center text-slate-600 dark:text-slate-300"><i class="fa-solid fa-circle-check text-emerald-500 mr-2"></i> Custom Virtual Row Table Buffer Engine (Zero Latency)</li>
+                  <li class="flex items-center text-slate-600 dark:text-slate-300"><i class="fa-solid fa-circle-check text-emerald-500 mr-2"></i> Dynamic Live API Google Apps Script Binding</li>
+                </ul>
               </div>
 
-              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                <span class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Copyright & Licensing:</span>
-                <p class="text-slate-600 dark:text-slate-400">© 2026 PurworejoIT. All rights reserved.</p>
-                <p class="text-slate-500 dark:text-slate-500 mt-1">Kolaborasi Portofolio: <a href="https://lynk.id/berdigital" target="_blank" class="text-brand-600 hover:underline">lynk.id/berdigital</a></p>
+              <div class="space-y-3">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Hubungi Pengembang</h4>
+                <ul class="space-y-2 text-xs">
+                  <li class="text-slate-600 dark:text-slate-300"><i class="fa-solid fa-globe mr-2 text-blue-500"></i> Website: <a href="https://purworejoit.com" target="_blank" class="hover:underline font-bold text-brand-500">PurworejoIT.com</a></li>
+                  <li class="text-slate-600 dark:text-slate-300"><i class="fa-solid fa-link mr-2 text-purple-500"></i> Profil: <a href="https://lynk.id/berdigital" target="_blank" class="hover:underline font-bold text-purple-500">lynk.id/berdigital</a></li>
+                </ul>
               </div>
             </div>
           </div>
@@ -687,1123 +522,815 @@
 
       </div>
 
-      <!-- FOOTER -->
-      <footer class="h-10 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-6 text-[10px] text-slate-400 dark:text-slate-500 z-10 shrink-0">
-        <span>Dashboard Status: <span class="text-green-600 dark:text-green-400 font-bold">Terhubung</span></span>
-        <span>Copyright © 2026 by PurworejoIT.com & lynk.id/berdigital</span>
+      <!-- SYSTEM FOOTER -->
+      <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-6 py-3 text-center text-[10px] font-semibold text-slate-400 dark:text-slate-500 flex items-center justify-between select-none">
+        <p>Copyright © 2026 by PurworejoIT.com & lynk.id/berdigital. Seluruh hak cipta dilindungi undang-undang.</p>
+        <p>System Ver: 4.10.1 (Stable)</p>
       </footer>
-
     </main>
-
   </div>
 
-  <!-- NATIONAL MONITORING COMMAND CENTER OVERLAY (MODE SLIDESHOW) -->
-  <div id="national-command-overlay" class="hidden fixed inset-0 z-50 bg-slate-950 text-white flex flex-col p-6 overflow-hidden">
-    <!-- Header Command Center -->
-    <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-slate-950">
-          <i data-lucide="radio" class="w-6 h-6 animate-pulse"></i>
-        </div>
-        <div>
-          <h1 class="text-lg font-extrabold tracking-wider uppercase text-amber-400">COMMAND CENTER MONITORING NASIONAL</h1>
-          <p class="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Sistem Logistik & Kinerja OLF Terpadu - PurworejoIT</p>
-        </div>
-      </div>
-
-      <div class="flex items-center space-x-6">
-        <!-- Live Clock -->
-        <div class="text-right">
-          <span id="cc-clock" class="text-xl font-bold font-mono">04:59:00 WIB</span>
-          <span class="text-[9px] text-slate-500 block uppercase tracking-wider">Live Monitoring</span>
-        </div>
-        
-        <!-- Slideshow info -->
-        <div class="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-center">
-          <span id="cc-slideshow-tab" class="text-xs font-bold text-brand-400 uppercase tracking-wider">Slide: Ringkasan Utama</span>
-          <span class="text-[9px] text-slate-500 block">Slideshow Otomatis (10 Detik)</span>
-        </div>
-
-        <!-- Exit button -->
-        <button onclick="exitNationalMonitoringMode()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition uppercase tracking-wider flex items-center gap-1.5">
-          <i data-lucide="log-out" class="w-4 h-4"></i> Keluar
-        </button>
-      </div>
-    </div>
-
-    <!-- Active Section Container inside Command Center -->
-    <div id="cc-content-container" class="flex-1 min-h-0 bg-slate-900 border border-slate-800 rounded-2xl p-6 relative overflow-y-auto">
-      <!-- Target views will be injected or synchronized with standard tabs here -->
-    </div>
-
-    <!-- Bottom status bar -->
-    <div class="mt-4 flex justify-between items-center text-xs text-slate-500 border-t border-slate-900 pt-3">
-      <div class="flex items-center space-x-2">
-        <span class="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-        <span class="font-semibold text-emerald-400 uppercase tracking-widest text-[10px]">Realtime Active Engine</span>
-      </div>
-      <span>PurworejoIT Dashboard 2026 v2.5 Enterprise</span>
-    </div>
-  </div>
-
-
-  <!-- INTEGRATED ENGINE CODE (JAVASCRIPT) -->
+  <!-- INTERNAL JAVASCRIPT LOGIC -->
   <script>
-    // --- GLOBAL VARIABLES ---
-    let originalData = [];
-    let filteredData = [];
-    let activeTab = 'ringkasan';
-    let sdaFilterActive = false;
-    let isDarkMode = false;
-    
-    // Virtual Scroll state
-    const rowHeight = 40; // Pixels
-    let visibleRowCount = 20;
-    let virtualStartIndex = 0;
-    
-    // Real-Time Engine & Auto Refresh settings
-    let refreshInterval = 30; // Seconds
+    // Global States
+    let rawDataset = [];
+    let filteredDataset = [];
+    let headers = [];
+    let activeTab = 'tab-summary';
     let refreshTimer = null;
-    let sheetsEndpoint = "https://script.google.com/macros/s/AKfycbyD-exampleEndpoint/exec"; // Default Placeholder, user can enter custom
-    let activeSourceName = "Dashboard OLF Bagus - Dashboard Monitoring.csv";
-    
-    // Leaflet map reference
-    let map = null;
-    let mapMarkersGroup = null;
-    let mapCarrierSdaOnly = true; // Default true as requested: "dapat menampilkan map lokasi dengan pengiriman dengan data dari pengambilan dari Coll3 dengan queri CARRIER 1D-INTERNAL (SDA)"
-    
-    // National Command Mode Slideshow
-    let isNationalCommandMode = false;
-    let nationalSlideshowTimer = null;
-    let nationalSlideshowIndex = 0;
-    const nationalTabs = ['ringkasan', 'visualisasi', 'peta', 'insight'];
+    let refreshInterval = 30000; // default 30 detik
+    let lastRetrievedTimestamp = '';
 
-    // Map Coordinates for East Java hubs
-    const areaCoordinates = {
-      "SURABAYA BARAT ZONA1": [-7.2598, 112.6511],
-      "SURABAYA BARAT": [-7.2598, 112.6511],
-      "SURABAYA TIMUR ZONA1": [-7.2683, 112.7820],
-      "SURABAYA TIMUR": [-7.2683, 112.7820],
-      "SURABAYA PUSAT": [-7.2504, 112.7425],
-      "SURABAYA SELATAN": [-7.3113, 112.7303],
-      "MOJOKERTO": [-7.4721, 112.4382],
-      "SIDOARJO": [-7.4497, 112.7183],
-      "GRESIK": [-7.1610, 112.6572],
-      "MALANG": [-7.9819, 112.6265],
-      "KEDIRI": [-7.8168, 112.0117]
-    };
+    // Virtual Scroll State Variables
+    const rowHeight = 60; // Tinggi virtual row dalam pixels
+    const visibleRowsCount = 10; 
+    let startIndex = 0;
 
-    // --- PROCEDURAL MASTER DATA GENERATOR (JAN 1 TO JUN 28, 2026) ---
-    // Generates realistic master data representing Dashboard OLF Bagus with exactly ~12,500 rows to show Big Data Performance
-    function generateMasterProceduralData() {
-      const data = [];
-      const startDate = new Date('2026-01-01');
-      const endDate = new Date('2026-06-28');
+    // Charts Instances Cache
+    let charts = {};
+
+    // Slideshow state
+    let slideshowActive = false;
+    let slideshowTimer = null;
+    const slideshowSequence = ['tab-summary', 'tab-charts', 'tab-ai'];
+    let slideshowIndex = 0;
+
+    /**
+     * Helper Parser Cerdas: Mengonversi data OLF mentah menjadi representasi persentase utuh (0-100)
+     * Mengatasi format desimal bawaan Google Sheets (misal: 0.85 -> 85.0%) atau string persen (misal: "85.5%" -> 85.5)
+     */
+    function parseOlfToPercentage(rawVal) {
+      if (rawVal === undefined || rawVal === null || rawVal === '') return 0;
+      let rawStr = rawVal.toString().trim();
+      let cleanStr = rawStr.replace('%', '').replace(',', '.').trim();
+      let parsed = parseFloat(cleanStr);
+      if (isNaN(parsed)) return 0;
       
-      const lanes = ["MINI VAN BOX 1", "MINI VAN BOX 2", "MINI VAN BOX 3", "MINI VAN BOX 4", "CDE 9", "CDE 15", "PICKUP 2", "PICKUP 1", "MINI TRUCK 1"];
-      const carriers = ["1D-INTERNAL (SDA)", "CARRIER BRT-GSK", "VENDOR SURABAYA", "INTERNAL EXPRESS"];
-      const nopols = ["W8479QD", "W8224QB", "W8656QE", "W8744PV", "L9504AB", "L8089ZZ", "W1234XY", "W8990BC"];
-      const types = ["CDE LONG CHASSIS", "MINI VAN BOX", "CDE", "PICKUP", "CDE PICK UP"];
-      const shippingLines = [
-        "BC4 Zyllem AHI BARAT", 
-        "BC4 Zyllem AHI TIMUR", 
-        "BC4 Zyllem AHI PUSAT", 
-        "BC4 Zyllem AHI SELATAN", 
-        "BC3 Zyllem SDA-MJK + STS", 
-        "BC3 Zyllem PICK UP PUSAT (GAB HCI-AHI)"
-      ];
-      const areas = ["SURABAYA BARAT ZONA1", "SURABAYA TIMUR ZONA1", "SURABAYA PUSAT", "SURABAYA SELATAN", "MOJOKERTO", "SIDOARJO", "GRESIK"];
-      
-      let indexCount = 1000;
-      
-      // Loop through each day from Jan 1 to June 28, generating ~70 entries per day
-      let currentDate = new Date(startDate);
-      while (currentDate <= endDate) {
-        const formattedDate = currentDate.toISOString().split('T')[0];
-        
-        // Let's generate entries for this date
-        const dailyEntries = 70 + Math.floor(Math.random() * 15);
-        for (let i = 0; i < dailyEntries; i++) {
-          indexCount++;
-          const lane = lanes[Math.floor(Math.random() * lanes.length)];
-          
-          // 70% probability for Sidoarjo internal carrier as requested
-          const carrier = Math.random() < 0.7 ? "1D-INTERNAL (SDA)" : carriers[Math.floor(Math.random() * carriers.length)];
-          const nopol = nopols[Math.floor(Math.random() * nopols.length)];
-          const type = types[Math.floor(Math.random() * types.length)];
-          const shippingLine = shippingLines[Math.floor(Math.random() * shippingLines.length)];
-          const area = areas[Math.floor(Math.random() * areas.length)];
-          const ritase = Math.random() < 0.9 ? "RIT 1" : "RIT 2";
-          
-          const totalStop = Math.floor(Math.random() * 14) + 1;
-          const totalOrder = totalStop + Math.floor(Math.random() * 6);
-          
-          // OLF percentage calculation
-          const olfVal = 30 + Math.random() * 90;
-          const olfStr = olfVal.toFixed(2).replace('.', ',') + "%";
-          const overall = olfVal > 50 ? "HIT" : "MISS";
-          
-          data.push({
-            "SI NUMBER": `260${formattedDate.replace(/-/g, '').slice(4)}C${indexCount}`,
-            "Lane No Zyllem": lane,
-            "CARRIER": carrier,
-            "NOPOL": carrier === "1D-INTERNAL (SDA)" ? nopol : "",
-            "TYPE": type,
-            "SHIPPING LINE": shippingLine,
-            "RITASE": ritase,
-            "Area pengiriman": area,
-            "DELIVERY DATE": formattedDate,
-            "TOTAL STOP": totalStop,
-            "TOTAL ORDER": totalOrder,
-            "OLF": olfStr,
-            "OVERALL (HIT/MISS)": overall
-          });
-        }
-        
-        currentDate.setDate(currentDate.getDate() + 1);
+      // Jika data adalah desimal murni rasio (misal <= 2.0 dan tidak memiliki simbol %)
+      if (!rawStr.includes('%') && parsed <= 2.0) {
+        return parsed * 100;
       }
-      
-      return data;
+      return parsed;
     }
 
-    // --- APPLICATION STARTUP ---
     window.onload = function() {
-      // 1. Initialize Lucide Icons
-      lucide.createIcons();
-      
-      // 2. Load Master Procedural Data representing 12.500+ rows
-      originalData = generateMasterProceduralData();
-      filteredData = [...originalData];
-      
-      // Update counts and options
-      populateFilterOptions();
-      updateDashboardData();
-      
-      // 3. Initialize Leaflet Map
-      initLeafletMap();
-      
-      // 4. Start Autorefresh engine
-      startRefreshEngine();
-      
-      // 5. Setup Live clock for Command center
-      setInterval(() => {
-        const timeStr = new Date().toLocaleTimeString('id-ID') + " WIB";
-        const dateStr = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        document.getElementById('cc-clock').textContent = timeStr;
-        document.getElementById('status-time').textContent = timeStr;
-      }, 1000);
+      // Load Theme State
+      const currentTheme = localStorage.getItem('theme') || 'light';
+      document.documentElement.className = currentTheme;
+      updateThemeIcon(currentTheme);
+
+      // Mulai inisialisasi visualisasi ECharts
+      window.addEventListener('resize', () => {
+        Object.keys(charts).forEach(key => charts[key] && charts[key].resize());
+      });
+
+      // Lakukan pemanggilan data awal ke Google Apps Script
+      fetchDataFromSheets();
+
+      // Atur timer auto refresh pertama kali
+      startAutoRefresh();
     };
 
-    // --- POPULATE FILTERS FROM DATA ---
-    function populateFilterOptions() {
-      const areaSelect = document.getElementById('filter-area');
-      const uniqueAreas = [...new Set(originalData.map(item => item["Area pengiriman"]).filter(Boolean))];
-      
-      // Reset filter options
-      areaSelect.innerHTML = '<option value="all">Semua Area</option>';
-      uniqueAreas.forEach(area => {
-        const opt = document.createElement('option');
-        opt.value = area;
-        opt.textContent = area;
-        areaSelect.appendChild(opt);
-      });
-      
-      // Default set date pickers (from start to end of current dataset)
-      if (originalData.length > 0) {
-        const dates = originalData.map(item => new Date(item["DELIVERY DATE"])).filter(d => !isNaN(d));
-        const minDate = new Date(Math.min(...dates)).toISOString().split('T')[0];
-        const maxDate = new Date(Math.max(...dates)).toISOString().split('T')[0];
-        document.getElementById('filter-date-start').value = minDate;
-        document.getElementById('filter-date-end').value = maxDate;
+    /**
+     * Mengambil data secara asinkron dari Google Apps Script code.gs
+     */
+    function fetchDataFromSheets() {
+      showLoading(true);
+      document.getElementById('connection-warning').classList.add('hidden');
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(response) {
+            if (response.success) {
+              rawDataset = response.rows || [];
+              headers = response.headers || [];
+              lastRetrievedTimestamp = response.timestamp;
+              
+              document.getElementById('sheet-indicator').innerHTML = `<i class="fa-solid fa-file-excel mr-1 text-emerald-600"></i> Sheet: ${response.sheetName || 'Monitoring LC'}`;
+              document.getElementById('last-update-time').innerText = `Terakhir: ${lastRetrievedTimestamp}`;
+
+              // Optimasi Big Data Mode indicator
+              if (rawDataset.length > 1000) {
+                document.getElementById('perf-badge').classList.remove('hidden');
+              } else {
+                document.getElementById('perf-badge').classList.add('hidden');
+              }
+
+              // Inisialisasi Filter dropdown
+              populateFilterOptions();
+              
+              // Terapkan Filter
+              applyGlobalFilters();
+            } else {
+              handleFetchError(response.error || "Gagal mengambil data dari Google Sheets.");
+            }
+            showLoading(false);
+          })
+          .withFailureHandler(function(err) {
+            handleFetchError(err);
+            showLoading(false);
+          })
+          .getLCData();
+      } else {
+        // Fallback data simulasi jika dibuka di server lokal / mode developer browser biasa
+        simulateMockData();
       }
     }
 
-    // --- CORE DATAGRID PROCESSING & CALCULATIONS ---
-    function updateDashboardData() {
-      // Filter Active
-      const rowCount = filteredData.length;
-      
-      // Update Header & Badge Counter
-      document.getElementById('data-count-badge').textContent = rowCount.toLocaleString('id-ID') + " data";
-      document.getElementById('metric-total-rows').textContent = rowCount.toLocaleString('id-ID');
-      
-      // Enable/Disable Enterprise Performance Mode based on data size (>10.000 rows)
-      const perfModeContainer = document.getElementById('perf-mode-container');
-      if (rowCount > 10000) {
-        perfModeContainer.classList.remove('hidden');
-      } else {
-        perfModeContainer.classList.add('hidden');
-      }
+    /**
+     * Membangun dataset demo secara lokal agar developer dapat melakukan debugging layout tanpa Apps Script Container
+     * Menghasilkan data multi-bulan (Bulan Ini dan Bulan Lalu) agar fitur penyaringan tanggal dan bulan dapat diuji secara maksimal.
+     */
+    function simulateMockData() {
+      console.warn("Google Apps Script API tidak terdeteksi. Menggunakan Simulasi Data Monitoring LC...");
+      const mockArea = ["SURABAYA BARAT ZONA1", "SURABAYA TIMUR ZONA1", "SURABAYA PUSAT", "SIDOARJO ZONA1", "GRESIK", "LUAR KOTA"];
+      const mockTypes = ["CDE LONG CHASSIS", "MINI VAN BOX", "PICKUP EXTRA", "CDE"];
+      const generatedRows = [];
+      const now = new Date();
 
-      // Calculate Metrics
-      let totalStop = 0;
-      let totalOrder = 0;
-      let sumOlf = 0;
-      let hitCount = 0;
-      let maxOlf = 0;
-      let minOlf = 150;
-      let countOlfValid = 0;
-      
-      const areaCounts = {};
-      const fleetCounts = {};
-      const ritaseCounts = { "RIT 1": 0, "RIT 2": 0 };
-
-      filteredData.forEach(row => {
-        const stop = parseInt(row["TOTAL STOP"]) || 0;
-        const order = parseInt(row["TOTAL ORDER"]) || 0;
-        totalStop += stop;
-        totalOrder += order;
+      // Menghasilkan 250 data dengan rentang waktu mencakup 45 hari ke belakang
+      for (let i = 1; i <= 250; i++) {
+        const stops = Math.floor(Math.random() * 15) + 1;
+        const orders = stops + Math.floor(Math.random() * 10);
         
-        // Parse OLF percentage safely
-        let olfStr = row["OLF"] || "0%";
-        let olf = parseFloat(olfStr.replace('%', '').replace(',', '.')) || 0;
-        sumOlf += olf;
-        countOlfValid++;
-
-        if (olf > maxOlf) maxOlf = olf;
-        if (olf < minOlf) minOlf = olf;
-
-        if (row["OVERALL (HIT/MISS)"] === "HIT") {
-          hitCount++;
+        // Simulasi OLF (bisa berupa desimal murni atau persen)
+        let olfVal;
+        if (i % 2 === 0) {
+          olfVal = (Math.random() * 1.2).toFixed(3); // Desimal murni (misal 0.855)
+        } else {
+          olfVal = `${(Math.random() * 150).toFixed(1)}%`; // String persentase
         }
 
-        // Area groupings
-        const area = row["Area pengiriman"] || "TIDAK TERDEFINISI";
-        areaCounts[area] = (areaCounts[area] || 0) + 1;
-
-        // Fleet groupings
-        const fleet = row["TYPE"] || "LAIN-LAIN";
-        fleetCounts[fleet] = (fleetCounts[fleet] || 0) + 1;
-
-        // Ritase
-        const rit = row["RITASE"] || "RIT 1";
-        if (ritaseCounts[rit] !== undefined) ritaseCounts[rit]++;
-      });
-
-      const avgOlf = countOlfValid > 0 ? (sumOlf / countOlfValid) : 0;
-      const hitRate = rowCount > 0 ? ((hitCount / rowCount) * 100) : 0;
-
-      // Update basic KPI Cards on tab-ringkasan
-      document.getElementById('metric-avg-olf').textContent = avgOlf.toFixed(2).replace('.', ',') + "%";
-      document.getElementById('metric-hit-rate').textContent = `Rasio HIT: ${hitRate.toFixed(1)}% (Memenuhi Target)`;
-      document.getElementById('metric-orders-stops').textContent = `${(totalOrder/1000).toFixed(0)}K / ${(totalStop/1000).toFixed(0)}K`;
-      
-      document.getElementById('stat-max-olf').textContent = maxOlf.toFixed(2).replace('.', ',') + "%";
-      document.getElementById('stat-min-olf').textContent = minOlf.toFixed(2).replace('.', ',') + "%";
-
-      // Top Area & Fleet calculation
-      let topArea = "-";
-      let maxAreaCount = 0;
-      for (const [key, val] of Object.entries(areaCounts)) {
-        if (val > maxAreaCount) {
-          maxAreaCount = val;
-          topArea = key;
-        }
-      }
-      document.getElementById('stat-top-area').textContent = topArea;
-
-      let topFleet = "-";
-      let maxFleetCount = 0;
-      for (const [key, val] of Object.entries(fleetCounts)) {
-        if (val > maxFleetCount) {
-          maxFleetCount = val;
-          topFleet = key;
-        }
-      }
-      document.getElementById('stat-top-fleet').textContent = topFleet;
-      
-      // Average Ritase Info
-      const totalRit = ritaseCounts["RIT 1"] + ritaseCounts["RIT 2"];
-      const rit1Percent = totalRit > 0 ? ((ritaseCounts["RIT 1"] / totalRit) * 100).toFixed(1) : 0;
-      document.getElementById('stat-avg-ritase').textContent = `RIT 1 (${rit1Percent}%)`;
-
-      // Render Charts & Insights
-      renderAllCharts(areaCounts, fleetCounts, hitRate);
-      updateAIEngineInsights(rowCount, avgOlf, hitRate, topArea, topFleet);
-      
-      // Update quick shipment table
-      renderQuickShipmentTable();
-
-      // Reset Table Scroller Spacer height and refresh view
-      refreshVirtualTableDimensions();
-      
-      // Map update
-      updateLeafletMapMarkers();
-    }
-
-    // --- QUICK SHIPMENT LIST RENDERING ---
-    function renderQuickShipmentTable() {
-      const tbody = document.getElementById('quick-shipment-tbody');
-      tbody.innerHTML = '';
-      
-      // Filter list specifically for carrier internal SDA or first 10 entries of current filtered
-      const sdaCarrierData = filteredData.filter(item => item["CARRIER"] === "1D-INTERNAL (SDA)").slice(0, 8);
-      const displayList = sdaCarrierData.length > 0 ? sdaCarrierData : filteredData.slice(0, 8);
-
-      if (displayList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="py-4 text-center text-slate-400">Tidak ada pengiriman sesuai filter aktif.</td></tr>`;
-        return;
-      }
-
-      displayList.forEach(row => {
-        const isHit = row["OVERALL (HIT/MISS)"] === "HIT";
-        const statusClass = isHit ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300';
+        // Tentukan tanggal mundur secara dinamis agar mencakup bulan lalu
+        const daysAgo = i % 45; 
+        const deliveryDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo);
+        const deliveryDateStr = deliveryDate.toISOString().split('T')[0];
         
-        tbody.innerHTML += `
-          <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-            <td class="py-2 px-4 font-semibold text-brand-600 dark:text-brand-400">${row["SI NUMBER"]}</td>
-            <td class="py-2 px-4">${row["Lane No Zyllem"] || '-'}</td>
-            <td class="py-2 px-4 font-mono">${row["NOPOL"] || '-'}</td>
-            <td class="py-2 px-4">${row["TYPE"]}</td>
-            <td class="py-2 px-4 font-semibold text-slate-700 dark:text-slate-200">${row["Area pengiriman"]}</td>
-            <td class="py-2 px-4">${row["TOTAL ORDER"]} / ${row["TOTAL STOP"]}</td>
-            <td class="py-2 px-4 text-right font-bold text-slate-700 dark:text-slate-200">${row["OLF"]}</td>
-            <td class="py-2 px-4 text-center">
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${statusClass}">${row["OVERALL (HIT/MISS)"]}</span>
-            </td>
-          </tr>
-        `;
-      });
-    }
-
-    // --- AI INSIGHT ENGINE (NATURAL LANGUAGE Indonesian) ---
-    function updateAIEngineInsights(count, avgOlf, hitRate, topArea, topFleet) {
-      // 1. Performance Overview
-      let perfText = `Berdasarkan analisis statistik dari <strong>${count.toLocaleString('id-ID')}</strong> baris data logistik, Kepatuhan On-Time Delivery Factor (OLF) keseluruhan berada pada nilai rata-rata <strong>${avgOlf.toFixed(2).replace('.', ',')}%</strong>. Rasio kepatuhan target (HIT Rate) berada di angka <strong>${hitRate.toFixed(1)}%</strong>. `;
-      if (hitRate >= 80) {
-        perfText += `Kinerja armada logistik tergolong <strong>sangat optimal</strong>, memenuhi target Key Performance Indicator (KPI) logistik nasional (>80%).`;
-      } else if (hitRate >= 60) {
-        perfText += `Kinerja berada dalam level <strong>waspada</strong>, disarankan untuk melakukan evaluasi kapasitas ritase di jam-jam sibuk.`;
-      } else {
-        perfText += `Kinerja logistik berada di level <strong>kritis</strong>, diperlukan restrukturisasi jadwal keberangkatan armada secara masif.`;
-      }
-      document.getElementById('ai-insight-performance').innerHTML = perfText;
-
-      // 2. Area Distribution
-      let areaText = `Distribusi pengiriman didominasi oleh wilayah <strong>${topArea}</strong>. Wilayah ini menyerap stop logistik tertinggi. `;
-      if (topArea.includes("SURABAYA BARAT")) {
-        areaText += `Surabaya Barat merupakan koridor logistik tersibuk dengan volume order harian sangat tinggi. Disarankan untuk menambah staging point di Sidoarjo Barat guna memangkas durasi stop armada.`;
-      } else {
-        areaText += `Hub utama pengiriman optimal dioptimalkan pada koridor ini dengan rata-rata stop berkisar antara 4-10 pemberhentian per rute armada.`;
-      }
-      document.getElementById('ai-insight-area').innerHTML = areaText;
-
-      // 3. Fleet & Utilization
-      const fleetText = `Armada tipe <strong>${topFleet}</strong> merupakan kontributor ritase terbesar dalam database operasional saat ini. Penggunaan armada tipe ini memberikan efisiensi stop-to-order ratio yang lebih stabil dibandingkan unit truk medium konvensional. Ritase logistik didominasi oleh <strong>RIT 1</strong> yang mengindikasikan pengiriman terdistribusi penuh di paruh pertama hari operasional.`;
-      document.getElementById('ai-insight-fleet').innerHTML = fleetText;
-
-      // 4. Anomaly and Mitigation Advice
-      let anomalyText = `Sistem mendeteksi adanya sekitar <strong>${(100-hitRate).toFixed(1)}%</strong> data berstatus MISS (OLF di bawah target). Kategori MISS ini terdeteksi dominan pada armada dengan beban stop tinggi (>12 stop per rute). `;
-      anomalyText += `Rekomendasi AI PurworejoIT: Lakukan optimasi pembagian kluster zona agar satu armada tidak menanggung rute lintas zona Surabaya-Mojokerto secara bersamaan.`;
-      document.getElementById('ai-insight-anomaly').innerHTML = anomalyText;
-    }
-
-    // --- REALTIME CHART ENGINE (ECHARTS) ---
-    let chartMainLine = null;
-    let chartAreaBar = null;
-    let chartFleetPie = null;
-    let chartOrderArea = null;
-    let chartCompliancePie = null;
-
-    function renderAllCharts(areaCounts, fleetCounts, hitRate) {
-      const isDark = document.documentElement.classList.contains('dark');
-      const textColor = isDark ? '#94a3b8' : '#475569';
-      const borderColor = isDark ? '#334155' : '#e2e8f0';
-
-      // Ensure EChart containers are visible/rendered before applying options
-      
-      // 1. Line Chart: Trend OLF over time (grouped by Month)
-      if (!chartMainLine) chartMainLine = echarts.init(document.getElementById('chart-main-line'));
-      
-      // Extract monthly averages for dates in 2026
-      const monthlyOlf = {};
-      filteredData.forEach(row => {
-        const dateStr = row["DELIVERY DATE"];
-        if (dateStr) {
-          const month = dateStr.slice(0, 7); // YYYY-MM
-          let olfStr = row["OLF"] || "0%";
-          let olf = parseFloat(olfStr.replace('%', '').replace(',', '.')) || 0;
-          if (!monthlyOlf[month]) monthlyOlf[month] = { sum: 0, count: 0 };
-          monthlyOlf[month].sum += olf;
-          monthlyOlf[month].count++;
-        }
-      });
-      const lineMonths = Object.keys(monthlyOlf).sort();
-      const lineValues = lineMonths.map(m => (monthlyOlf[m].sum / monthlyOlf[m].count).toFixed(2));
-
-      chartMainLine.setOption({
-        tooltip: { trigger: 'axis', formatter: '{b}: {c}%' },
-        xAxis: { type: 'category', data: lineMonths, axisLabel: { color: textColor } },
-        yAxis: { type: 'value', axisLabel: { color: textColor, formatter: '{value}%' }, splitLine: { lineStyle: { color: borderColor } } },
-        series: [{
-          data: lineValues,
-          type: 'line',
-          smooth: true,
-          color: '#0e8eed',
-          lineStyle: { width: 3 },
-          areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{offset: 0, color: 'rgba(14,142,237,0.3)'}, {offset: 1, color: 'rgba(14,142,237,0)'}]) }
-        }]
-      });
-
-      // 2. Bar Chart Area
-      if (!chartAreaBar) chartAreaBar = echarts.init(document.getElementById('chart-area-bar'));
-      const barAreas = Object.keys(areaCounts);
-      const barValues = barAreas.map(area => areaCounts[area]);
-      
-      chartAreaBar.setOption({
-        tooltip: { trigger: 'item' },
-        xAxis: { type: 'category', data: barAreas, axisLabel: { color: textColor, rotate: 25 } },
-        yAxis: { type: 'value', axisLabel: { color: textColor }, splitLine: { lineStyle: { color: borderColor } } },
-        series: [{
-          data: barValues,
-          type: 'bar',
-          color: '#6366f1',
-          itemStyle: { borderRadius: [4, 4, 0, 0] }
-        }]
-      });
-
-      // 3. Pie Chart Fleet Distribution
-      if (!chartFleetPie) chartFleetPie = echarts.init(document.getElementById('chart-fleet-pie'));
-      const pieData = Object.keys(fleetCounts).map(fleet => ({ value: fleetCounts[fleet], name: fleet }));
-      
-      chartFleetPie.setOption({
-        tooltip: { trigger: 'item', formatter: '{b} : {c} ({d}%)' },
-        legend: { bottom: '0', textStyle: { color: textColor } },
-        series: [{
-          name: 'Armada',
-          type: 'pie',
-          radius: ['40%', '70%'],
-          avoidLabelOverlap: false,
-          itemStyle: { borderRadius: 8, borderColor: isDark ? '#0f172a' : '#fff', borderWidth: 2 },
-          label: { show: false },
-          data: pieData
-        }]
-      });
-
-      // 4. Area Chart Volume Orders vs Stops
-      if (!chartOrderArea) chartOrderArea = echarts.init(document.getElementById('chart-order-area'));
-      // Aggregate by date (last 15 dates)
-      const dateStats = {};
-      filteredData.forEach(row => {
-        const d = row["DELIVERY DATE"];
-        if (d) {
-          if (!dateStats[d]) dateStats[d] = { orders: 0, stops: 0 };
-          dateStats[d].orders += parseInt(row["TOTAL ORDER"]) || 0;
-          dateStats[d].stops += parseInt(row["TOTAL STOP"]) || 0;
-        }
-      });
-      const sortedDates = Object.keys(dateStats).sort().slice(-15);
-      const ordersTrend = sortedDates.map(d => dateStats[d].orders);
-      const stopsTrend = sortedDates.map(d => dateStats[d].stops);
-
-      chartOrderArea.setOption({
-        tooltip: { trigger: 'axis' },
-        legend: { textStyle: { color: textColor } },
-        xAxis: { type: 'category', data: sortedDates, axisLabel: { color: textColor } },
-        yAxis: { type: 'value', axisLabel: { color: textColor }, splitLine: { lineStyle: { color: borderColor } } },
-        series: [
-          { name: 'Total Orders', type: 'line', smooth: true, color: '#10b981', areaStyle: { opacity: 0.1 }, data: ordersTrend },
-          { name: 'Total Stops', type: 'line', smooth: true, color: '#f59e0b', areaStyle: { opacity: 0.1 }, data: stopsTrend }
-        ]
-      });
-
-      // 5. Pie Compliance Hit vs Miss
-      if (!chartCompliancePie) chartCompliancePie = echarts.init(document.getElementById('chart-compliance-pie'));
-      chartCompliancePie.setOption({
-        tooltip: { trigger: 'item', formatter: '{b} : {c} ({d}%)' },
-        series: [{
-          type: 'pie',
-          radius: '65%',
-          data: [
-            { value: filteredData.filter(r => r["OVERALL (HIT/MISS)"] === "HIT").length, name: 'HIT (Sesuai Target)', itemStyle: { color: '#10b981' } },
-            { value: filteredData.filter(r => r["OVERALL (HIT/MISS)"] === "MISS").length, name: 'MISS (Di bawah Target)', itemStyle: { color: '#f43f5e' } }
-          ],
-          label: { textStyle: { color: textColor } }
-        }]
-      });
-    }
-
-    // Resize charts on window resize
-    window.addEventListener('resize', function() {
-      if (chartMainLine) chartMainLine.resize();
-      if (chartAreaBar) chartAreaBar.resize();
-      if (chartFleetPie) chartFleetPie.resize();
-      if (chartOrderArea) chartOrderArea.resize();
-      if (chartCompliancePie) chartCompliancePie.resize();
-    });
-
-    // --- LEAFLET MAP ENGINE ---
-    function initLeafletMap() {
-      if (map) return;
-      
-      // Default center in East Java / Surabaya region
-      map = L.map('leaflet-map').setView([-7.35, 112.65], 10);
-      
-      // Base layer
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        attribution: '© OpenStreetMap contributors | PurworejoIT Mapping'
-      }).addTo(map);
-
-      mapMarkersGroup = L.layerGroup().addTo(map);
-      
-      // Adjust map visual mode based on theme on init
-      updateMapTileStyle();
-    }
-
-    function updateMapTileStyle() {
-      if (!map) return;
-      const mapContainer = document.getElementById('leaflet-map');
-      if (isDarkMode) {
-        mapContainer.classList.add('map-dark-tiles');
-        mapContainer.classList.remove('map-light-tiles');
-      } else {
-        mapContainer.classList.add('map-light-tiles');
-        mapContainer.classList.remove('map-dark-tiles');
-      }
-    }
-
-    function setMapCarrierFilter(sdaOnly) {
-      mapCarrierSdaOnly = sdaOnly;
-      
-      const btnSda = document.getElementById('btn-map-sda-only');
-      const btnAll = document.getElementById('btn-map-all-carriers');
-      
-      if (sdaOnly) {
-        btnSda.className = "px-2.5 py-1.5 bg-brand-600 text-white text-[11px] font-bold rounded-lg transition";
-        btnAll.className = "px-2.5 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 text-[11px] font-bold rounded-lg transition";
-      } else {
-        btnAll.className = "px-2.5 py-1.5 bg-brand-600 text-white text-[11px] font-bold rounded-lg transition";
-        btnSda.className = "px-2.5 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 text-[11px] font-bold rounded-lg transition";
-      }
-
-      updateLeafletMapMarkers();
-    }
-
-    function updateLeafletMapMarkers() {
-      if (!map || !mapMarkersGroup) return;
-      
-      mapMarkersGroup.clearLayers();
-      
-      // Filter dataset for map pins
-      let mapData = filteredData;
-      if (mapCarrierSdaOnly) {
-        mapData = filteredData.filter(item => item["CARRIER"] === "1D-INTERNAL (SDA)");
-      }
-
-      // Group metrics by Area pengiriman
-      const areaStats = {};
-      mapData.forEach(row => {
-        const area = row["Area pengiriman"];
-        if (area) {
-          if (!areaStats[area]) {
-            areaStats[area] = { total: 0, hit: 0, miss: 0, orders: 0, stops: 0 };
-          }
-          areaStats[area].total++;
-          areaStats[area].orders += parseInt(row["TOTAL ORDER"]) || 0;
-          areaStats[area].stops += parseInt(row["TOTAL STOP"]) || 0;
-          if (row["OVERALL (HIT/MISS)"] === "HIT") {
-            areaStats[area].hit++;
-          } else {
-            areaStats[area].miss++;
-          }
-        }
-      });
-
-      // Draw Markers on Map
-      Object.keys(areaStats).forEach(area => {
-        const coords = areaCoordinates[area] || areaCoordinates[area.replace(" ZONA1", "")] || [-7.25, 112.74]; // Fallback to Surabaya Pusat
-        const stats = areaStats[area];
-        const hitRate = stats.total > 0 ? ((stats.hit / stats.total) * 100).toFixed(1) : 0;
-        
-        // Define marker color depending on Hit Rate
-        let markerColor = "#f43f5e"; // Red for miss
-        if (hitRate >= 80) markerColor = "#10b981"; // Green
-        else if (hitRate >= 50) markerColor = "#f59e0b"; // Amber
-
-        // Custom div icon for Leaflet
-        const customIcon = L.divIcon({
-          html: `<div class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-lg border-2 border-white animate-pulse" style="background-color: ${markerColor}">${stats.total}</div>`,
-          className: '',
-          iconSize: [28, 28]
+        generatedRows.push({
+          "SI NUMBER": `260101C${String(i).padStart(3, '0')}`,
+          "Lane No Zyllem": `LANE-${i}`,
+          "NOPOL": `W${Math.floor(Math.random() * 8000) + 1000}Q${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`,
+          "TYPE": mockTypes[Math.floor(Math.random() * mockTypes.length)],
+          "SHIPPING LINE": `Zyllem ROUTE ${i}`,
+          "RITASE": `RIT ${Math.floor(Math.random() * 3) + 1}`,
+          "Area pengiriman": mockArea[Math.floor(Math.random() * mockArea.length)],
+          "DELIVERY DATE": deliveryDateStr,
+          "TOTAL STOP": stops,
+          "TOTAL ORDER": orders,
+          "OLF": olfVal,
+          "OVERALL (HIT/MISS)": Math.random() > 0.3 ? "HIT" : "MISS"
         });
-
-        const popupContent = `
-          <div class="p-3 font-sans text-slate-800 dark:text-slate-200">
-            <h4 class="font-extrabold text-sm border-b pb-1 mb-1.5 uppercase tracking-wide text-brand-600">${area}</h4>
-            <div class="space-y-1 text-xs">
-              <div class="flex justify-between gap-4"><span>Total Pengiriman:</span> <strong>${stats.total}</strong></div>
-              <div class="flex justify-between gap-4"><span>Total Orders:</span> <strong>${stats.orders}</strong></div>
-              <div class="flex justify-between gap-4"><span>Total Stops:</span> <strong>${stats.stops}</strong></div>
-              <div class="flex justify-between gap-4 border-t pt-1 mt-1 text-emerald-600"><span>Rasio HIT:</span> <strong>${hitRate}%</strong></div>
-            </div>
-          </div>
-        `;
-
-        const marker = L.marker(coords, { icon: customIcon })
-          .bindPopup(popupContent)
-          .addTo(mapMarkersGroup);
-      });
-    }
-
-    // --- VIRTUAL TABLE RENDERING ENGINE (BIG DATA HIGH PERFORMANCE) ---
-    function refreshVirtualTableDimensions() {
-      const spacer = document.getElementById('virtual-spacer');
-      spacer.style.height = `${filteredData.length * rowHeight}px`;
-      
-      // Trigger update
-      handleVirtualScroll();
-    }
-
-    function handleVirtualScroll() {
-      const viewport = document.getElementById('virtual-table-viewport');
-      const content = document.getElementById('virtual-table-content');
-      const tbody = document.getElementById('virtual-table-tbody');
-      
-      const scrollTop = viewport.scrollTop;
-      const viewportHeight = viewport.clientHeight;
-      
-      // Determine indices
-      virtualStartIndex = Math.floor(scrollTop / rowHeight);
-      const visibleCount = Math.ceil(viewportHeight / rowHeight) + 5; // buffer of 5 rows
-      const endIndex = Math.min(filteredData.length, virtualStartIndex + visibleCount);
-      
-      // Translate the visible block down using transform
-      content.style.transform = `translateY(${virtualStartIndex * rowHeight}px)`;
-      
-      // Render rows
-      tbody.innerHTML = '';
-      const visibleRows = filteredData.slice(virtualStartIndex, endIndex);
-      
-      if (visibleRows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="py-12 text-center text-slate-400">Tidak ada data ditemukan. Lakukan sinkronisasi atau ubah kata kunci pencarian.</td></tr>`;
-        return;
       }
 
-      visibleRows.forEach((row, i) => {
-        const globalIdx = virtualStartIndex + i;
-        const isHit = row["OVERALL (HIT/MISS)"] === "HIT";
-        const statusClass = isHit ? 'text-emerald-600 font-bold' : 'text-rose-500 font-bold';
-        
-        tbody.innerHTML += `
-          <tr class="hover:bg-slate-100 dark:hover:bg-slate-800/40 h-[40px] border-b border-slate-100 dark:border-slate-800/60">
-            <td class="py-2 px-4 truncate font-semibold text-brand-600 dark:text-brand-400">${row["SI NUMBER"]}</td>
-            <td class="py-2 px-4 truncate">${row["Lane No Zyllem"] || '-'}</td>
-            <td class="py-2 px-4 truncate">${row["CARRIER"]}</td>
-            <td class="py-2 px-4 font-mono truncate">${row["NOPOL"] || '-'}</td>
-            <td class="py-2 px-4 truncate text-slate-600 dark:text-slate-400">${row["TYPE"]}</td>
-            <td class="py-2 px-4 truncate font-medium text-slate-700 dark:text-slate-200">${row["Area pengiriman"]}</td>
-            <td class="py-2 px-4 truncate text-center">${row["TOTAL STOP"]}</td>
-            <td class="py-2 px-4 truncate text-center">${row["TOTAL ORDER"]}</td>
-            <td class="py-2 px-4 truncate text-right ${statusClass}">${row["OLF"]}</td>
-          </tr>
-        `;
+      headers = Object.keys(generatedRows[0]);
+      rawDataset = generatedRows;
+      lastRetrievedTimestamp = "Simulasi - " + new Date().toLocaleTimeString();
+      document.getElementById('sheet-indicator').innerHTML = `<i class="fa-solid fa-file-excel mr-1 text-yellow-600"></i> Mode Simulasi (Developer)`;
+      document.getElementById('last-update-time').innerText = `Terakhir: ${lastRetrievedTimestamp}`;
+      
+      populateFilterOptions();
+      applyGlobalFilters();
+      showLoading(false);
+    }
+
+    function handleFetchError(err) {
+      console.error(err);
+      document.getElementById('connection-warning').classList.remove('hidden');
+      // Retry otomatis setelah 5 detik
+      setTimeout(fetchDataFromSheets, 5000);
+    }
+
+    function manualRefresh() {
+      const icon = document.getElementById('refresh-spin-icon');
+      icon.classList.add('animate-spin');
+      fetchDataFromSheets();
+      setTimeout(() => icon.classList.remove('animate-spin'), 1000);
+    }
+
+    function startAutoRefresh() {
+      if (refreshTimer) clearInterval(refreshTimer);
+      refreshTimer = setInterval(() => {
+        fetchDataFromSheets();
+      }, refreshInterval);
+    }
+
+    function changeRefreshInterval(value) {
+      refreshInterval = parseInt(value, 10);
+      startAutoRefresh();
+    }
+
+    /**
+     * Memasukkan opsi-opsi filter dinamis secara global
+     */
+    function populateFilterOptions() {
+      
+      const areaSet = new Set();
+
+      rawDataset.forEach(row => {
+      
+        if (row["Area pengiriman"]) areaSet.add(row["Area pengiriman"]);
+      });
+
+     
+      const areaSelect = document.getElementById('filter-area');
+      areaSelect.innerHTML = '<option value="ALL">Semua Area</option>';
+      [...areaSet].sort().forEach(area => {
+        areaSelect.innerHTML += `<option value="${area}">${area}</option>`;
       });
     }
 
-    // --- TABLE SEARCH & FILTER LOGIC ---
-    function handleTableSearch() {
-      const q = document.getElementById('table-search-input').value.toLowerCase();
-      
-      // Re-apply filters including search term
-      applyGlobalFilters(q);
-    }
-
-    function applyGlobalFilters(searchQuery = "") {
-      const areaVal = document.getElementById('filter-area').value;
-      const carrierVal = document.getElementById('filter-carrier').value;
-      const hitmissVal = document.getElementById('filter-hitmiss').value;
-      const startDateVal = document.getElementById('filter-date-start').value;
-      const endDateVal = document.getElementById('filter-date-end').value;
-
-      filteredData = originalData.filter(row => {
-        // Area Match
-        if (areaVal !== "all" && row["Area pengiriman"] !== areaVal) return false;
-        
-        // Carrier Match
-        if (carrierVal !== "all" && row["CARRIER"] !== carrierVal) return false;
-        
-        // Hit/Miss Match
-        if (hitmissVal !== "all" && row["OVERALL (HIT/MISS)"] !== hitmissVal) return false;
-        
-        // Date Match
-        if (row["DELIVERY DATE"]) {
-          const rowDate = new Date(row["DELIVERY DATE"]);
-          if (startDateVal && rowDate < new Date(startDateVal)) return false;
-          if (endDateVal && rowDate > new Date(endDateVal)) return false;
-        }
-
-        // Quick carrier sda lock
-        if (sdaFilterActive && row["CARRIER"] !== "1D-INTERNAL (SDA)") return false;
-
-        // Search Query
-        if (searchQuery) {
-          const si = (row["SI NUMBER"] || "").toLowerCase();
-          const nopol = (row["NOPOL"] || "").toLowerCase();
-          const lane = (row["Lane No Zyllem"] || "").toLowerCase();
-          const typ = (row["TYPE"] || "").toLowerCase();
-          if (!si.includes(searchQuery) && !nopol.includes(searchQuery) && !lane.includes(searchQuery) && !typ.includes(searchQuery)) return false;
-        }
-
-        return true;
-      });
-
-      // Update counters in layout
-      document.getElementById('table-filtered-count').textContent = filteredData.length.toLocaleString('id-ID');
-      document.getElementById('table-total-count').textContent = originalData.length.toLocaleString('id-ID');
-
-      updateDashboardData();
-    }
-
-    function resetGlobalFilters() {
-      document.getElementById('filter-area').value = "all";
-      document.getElementById('filter-carrier').value = "all";
-      document.getElementById('filter-hitmiss').value = "all";
-      
-      sdaFilterActive = false;
-      document.getElementById('sda-filter-badge').classList.add('hidden');
-
-      if (originalData.length > 0) {
-        const dates = originalData.map(item => new Date(item["DELIVERY DATE"])).filter(d => !isNaN(d));
-        const minDate = new Date(Math.min(...dates)).toISOString().split('T')[0];
-        const maxDate = new Date(Math.max(...dates)).toISOString().split('T')[0];
-        document.getElementById('filter-date-start').value = minDate;
-        document.getElementById('filter-date-end').value = maxDate;
-      }
-
-      document.getElementById('table-search-input').value = "";
-      filteredData = [...originalData];
-      
-      updateDashboardData();
-    }
-
-    function toggleCarrierSdaFilter() {
-      sdaFilterActive = !sdaFilterActive;
-      const badge = document.getElementById('sda-filter-badge');
-      if (sdaFilterActive) {
-        badge.classList.remove('hidden');
-      } else {
-        badge.classList.add('hidden');
+    /**
+     * Penyelarasan UX Cerdas:
+     * Jika filter tanggal spesifik dipilih, otomatis sesuaikan bulan pada filter bulanan.
+     */
+    function onDateFilterChange() {
+      const dateVal = document.getElementById('filter-date').value;
+      if (dateVal) {
+        // Otomatis arahkan filter bulan ke bulan berjalan dari tanggal terpilih
+        document.getElementById('filter-month').value = dateVal.substring(0, 7);
       }
       applyGlobalFilters();
     }
 
-    // --- TAB NAVIGATION MANAGER ---
-    function switchTab(tabName) {
-      activeTab = tabName;
-      
-      // Hide all tabs
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-      
-      // Show targeted tab
-      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-      
-      // Update sidebar styling
-      document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.className = "nav-btn w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-950 dark:hover:text-white transition";
-      });
-      
-      const activeBtn = document.getElementById(`nav-${tabName}`);
-      if (activeBtn) {
-        activeBtn.className = "nav-btn w-full flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl bg-brand-50 dark:bg-slate-800 text-brand-600 dark:text-white transition";
-      }
-
-      // Special re-renders
-      if (tabName === 'visualisasi') {
-        setTimeout(() => {
-          if (chartMainLine) chartMainLine.resize();
-          if (chartAreaBar) chartAreaBar.resize();
-          if (chartFleetPie) chartFleetPie.resize();
-          if (chartOrderArea) chartOrderArea.resize();
-          if (chartCompliancePie) chartCompliancePie.resize();
-        }, 100);
-      } else if (tabName === 'peta') {
-        setTimeout(() => {
-          if (map) {
-            map.invalidateSize();
-            updateLeafletMapMarkers();
-          }
-        }, 100);
-      } else if (tabName === 'tabel') {
-        setTimeout(() => {
-          refreshVirtualTableDimensions();
-        }, 100);
-      }
+    /**
+     * Penyelarasan UX Cerdas:
+     * Jika filter bulanan dipilih, kosongkan filter tanggal spesifik agar menampilkan data 1 bulan penuh.
+     */
+    function onMonthFilterChange() {
+      // Kosongkan filter tanggal spesifik agar user dapat melihat rekapan data 1 bulan penuh
+      document.getElementById('filter-date').value = '';
+      applyGlobalFilters();
     }
 
-    // --- REALTIME DATA AUTO-UPDATE ENGINE ---
-    function startRefreshEngine() {
-      if (refreshTimer) clearInterval(refreshTimer);
+    /**
+     * Tombol Pintas: Otomatis menyaring data hanya untuk bulan berjalan.
+     */
+    function setFilterToCurrentMonth() {
+      const now = new Date();
+      const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       
-      refreshTimer = setInterval(() => {
-        fetchRealtimeData();
-      }, refreshInterval * 1000);
+      document.getElementById('filter-date').value = '';
+      document.getElementById('filter-month').value = currentYearMonth;
+      applyGlobalFilters();
     }
 
-    function changeRefreshInterval() {
-      const select = document.getElementById('refresh-interval-select');
-      refreshInterval = parseInt(select.value) || 30;
+    /**
+     * Memproses data berkinerja tinggi, mengalkulasi filter global secara dinamis
+     */
+    function applyGlobalFilters() {
       
-      // Re-initialize timer
-      startRefreshEngine();
-    }
+      const areaVal = document.getElementById('filter-area').value;
+      const statusVal = document.getElementById('filter-status').value;
+      const dateVal = document.getElementById('filter-date').value; // format: YYYY-MM-DD
+      const monthVal = document.getElementById('filter-month').value; // format: YYYY-MM
 
-    function setNewSheetsEndpoint() {
-      const input = document.getElementById('sheets-url-input').value;
-      if (input) {
-        sheetsEndpoint = input;
-        fetchRealtimeData();
-      }
-    }
-
-    function manualRefreshData() {
-      fetchRealtimeData();
-    }
-
-    function fetchRealtimeData() {
-      const statusConn = document.getElementById('status-conn');
-      const statusTime = document.getElementById('status-time');
-      const alertError = document.getElementById('alert-error');
-      
-      statusConn.textContent = "Sinkronisasi...";
-      statusConn.className = "font-semibold text-amber-500 animate-pulse";
-
-      // AJAX/Fetch Call to custom deployment backend (code.gs Apps Script)
-      fetch(sheetsEndpoint, { method: 'GET', mode: 'cors' })
-        .then(response => response.json())
-        .then(res => {
-          // Verify returned database
-          if (res && res.data && res.data.length > 0) {
-            originalData = res.data;
-            filteredData = [...originalData];
-            activeSourceName = res.title || "Google Sheets Realtime";
-            
-            // Render UI
-            document.getElementById('source-name-header').textContent = activeSourceName;
-            populateFilterOptions();
-            updateDashboardData();
-
-            statusConn.textContent = "Terhubung";
-            statusConn.className = "font-semibold text-emerald-600 dark:text-emerald-400";
-            alertError.classList.add('hidden');
-          } else {
-            throw new Error("Format JSON tidak sesuai.");
-          }
-        })
-        .catch(err => {
-          console.warn("Realtime Engine fail, using cached dataset. Err: ", err);
-          // Safety fallback: remain Connected to local procedural cache with an warning toast
-          statusConn.textContent = "Terputus (Local Cache)";
-          statusConn.className = "font-semibold text-rose-500";
-          
-          alertError.classList.remove('hidden');
-          setTimeout(() => {
-            alertError.classList.add('hidden');
-          }, 6000);
-        });
+      filteredDataset = rawDataset.filter(row => {
         
-      const timeStr = new Date().toLocaleTimeString('id-ID') + " WIB";
-      statusTime.textContent = timeStr;
+        const matchesArea = (areaVal === 'ALL' || row["Area pengiriman"] === areaVal);
+        const matchesStatus = (statusVal === 'ALL' || row["OVERALL (HIT/MISS)"] === statusVal);
+        
+        // Penyaringan Tanggal Spesifik
+        let matchesDate = true;
+        if (dateVal) {
+          matchesDate = (row["DELIVERY DATE"] === dateVal);
+        }
+
+        // Penyaringan Berdasarkan Bulan Terpilih (Data 1 Bulan)
+        let matchesMonth = true;
+        if (monthVal && !dateVal) {
+          matchesMonth = (row["DELIVERY DATE"] && row["DELIVERY DATE"].startsWith(monthVal));
+        }
+
+        return  matchesArea && matchesStatus && matchesDate && matchesMonth;
+      });
+
+      document.getElementById('record-count').innerHTML = `<i class="fa-solid fa-database mr-1"></i> ${filteredDataset.length} Baris`;
+
+      // Update semua visualisasi
+      calculateStatistics();
+      renderAllCharts();
+      initVirtualTable();
+      generateAIInsights();
     }
 
-    // --- THEME SWITCHER (DARK / LIGHT) ---
-    function toggleDarkMode() {
-      isDarkMode = !isDarkMode;
-      const html = document.documentElement;
-      const icon = document.getElementById('theme-icon');
-      
-      if (isDarkMode) {
-        html.classList.add('dark');
-        icon.setAttribute('data-lucide', 'sun');
-      } else {
-        html.classList.remove('dark');
-        icon.setAttribute('data-lucide', 'moon');
+    function resetGlobalFilters() {
+
+      document.getElementById('filter-area').value = 'ALL';
+      document.getElementById('filter-status').value = 'ALL';
+      document.getElementById('filter-date').value = '';
+      document.getElementById('filter-month').value = '';
+      applyGlobalFilters();
+    }
+
+    /**
+     * Menghitung statistik utama dari dataset yang telah difilter
+     */
+    function calculateStatistics() {
+      const total = filteredDataset.length;
+      document.getElementById('stat-total-delivery').innerText = total.toLocaleString('id-ID');
+      document.getElementById('mon-stat-total').innerText = total.toLocaleString('id-ID');
+
+      if (total === 0) {
+        document.getElementById('stat-avg-olf').innerText = "0.0 %";
+        document.getElementById('stat-hit-ratio').innerText = "0.0 %";
+        document.getElementById('stat-stop-order').innerText = "0 / 0";
+       
+        document.getElementById('sub-total-area').innerText = "0";
+        document.getElementById('sub-max-olf').innerText = "0.0%";
+        document.getElementById('sub-min-olf').innerText = "0.0%";
+        return;
       }
+
+      let sumOlf = 0;
+      let countOlf = 0;
+      let maxOlf = -Infinity;
+      let minOlf = Infinity;
+
+      let sumStops = 0;
+      let sumOrders = 0;
+      let countHit = 0;
+
+    
+      const areaSet = new Set();
+
+      filteredDataset.forEach(row => {
+        // Parsing nilai OLF (Menggunakan helper parser persentase terpusat)
+        if (row["OLF"] !== undefined && row["OLF"] !== null) {
+          let parsedOlf = parseOlfToPercentage(row["OLF"]);
+          sumOlf += parsedOlf;
+          countOlf++;
+          if (parsedOlf > maxOlf) maxOlf = parsedOlf;
+          if (parsedOlf < minOlf) minOlf = parsedOlf;
+        }
+
+        // Parsing Stops & Orders
+        let stopVal = parseInt(row["TOTAL STOP"], 10) || 0;
+        let orderVal = parseInt(row["TOTAL ORDER"], 10) || 0;
+        sumStops += stopVal;
+        sumOrders += orderVal;
+
+        // HIT vs MISS
+        if (row["OVERALL (HIT/MISS)"] === "HIT") {
+          countHit++;
+        }
+
+       
+        if (row["Area pengiriman"]) areaSet.add(row["Area pengiriman"]);
+      });
+
+      const avgOlf = countOlf > 0 ? (sumOlf / countOlf) : 0;
+      const hitRatio = (countHit / total) * 100;
+
+      document.getElementById('stat-avg-olf').innerText = `${avgOlf.toFixed(1)} %`;
+      document.getElementById('mon-stat-olf').innerText = `${avgOlf.toFixed(1)} %`;
+
+      document.getElementById('stat-hit-ratio').innerText = `${hitRatio.toFixed(1)} %`;
+      document.getElementById('mon-stat-hit').innerText = `${hitRatio.toFixed(1)} %`;
+
+      document.getElementById('stat-stop-order').innerText = `${sumStops.toLocaleString('id-ID')} / ${sumOrders.toLocaleString('id-ID')}`;
+
+     
+      document.getElementById('sub-total-area').innerText = areaSet.size.toString();
+      document.getElementById('sub-max-olf').innerText = `${maxOlf !== -Infinity ? maxOlf.toFixed(1) : 0.0}%`;
+      document.getElementById('sub-min-olf').innerText = `${minOlf !== Infinity ? minOlf.toFixed(1) : 0.0}%`;
+    }
+
+    /**
+     * Menggambar grafik performa tinggi dengan Apache ECharts
+     */
+    function renderAllCharts() {
+      const isDark = document.documentElement.classList.contains('dark');
+      const textStyleColor = isDark ? '#94a3b8' : '#475569';
+      const splitLineColor = isDark ? '#334155' : '#f1f5f9';
+
+      // --- CHART 1: Distribusi HIT vs MISS (Pie Chart) ---
+      let hitCount = 0;
+      let missCount = 0;
+      filteredDataset.forEach(row => {
+        if (row["OVERALL (HIT/MISS)"] === 'HIT') hitCount++;
+        else if (row["OVERALL (HIT/MISS)"] === 'MISS') missCount++;
+      });
+
+      if (charts.quickPie) charts.quickPie.dispose();
+      charts.quickPie = echarts.init(document.getElementById('chart-quick-pie'));
+      charts.quickPie.setOption({
+        tooltip: { trigger: 'item', formatter: '{b} : {c} ({d}%)' },
+        series: [{
+          type: 'pie',
+          radius: ['45%', '75%'],
+          avoidLabelOverlap: false,
+          itemStyle: { borderRadius: 8, borderColor: isDark ? '#1e293b' : '#fff', borderWidth: 2 },
+          label: { show: true, position: 'inside', formatter: '{d}%', color: '#fff', fontWeight: 'bold' },
+          data: [
+            { value: hitCount, name: 'HIT', itemStyle: { color: '#10b981' } },
+            { value: missCount, name: 'MISS', itemStyle: { color: '#f43f5e' } }
+          ]
+        }]
+      });
+
+      // --- CHART 2: Volume Harian (Trend Bar Chart) ---
+      const dateMap = {};
+      filteredDataset.forEach(row => {
+        const d = row["DELIVERY DATE"] || "Unknown";
+        dateMap[d] = (dateMap[d] || 0) + 1;
+      });
+      const sortedDates = Object.keys(dateMap).sort();
+      const dailyVolumes = sortedDates.map(date => dateMap[date]);
+
+      if (charts.quickTrend) charts.quickTrend.dispose();
+      charts.quickTrend = echarts.init(document.getElementById('chart-quick-trend'));
+      charts.quickTrend.setOption({
+        grid: { top: 20, bottom: 40, left: 40, right: 20 },
+        tooltip: { trigger: 'axis' },
+        xAxis: { type: 'category', data: sortedDates, axisLabel: { color: textStyleColor } },
+        yAxis: { type: 'value', splitLine: { lineStyle: { color: splitLineColor } }, axisLabel: { color: textStyleColor } },
+        series: [{
+          data: dailyVolumes,
+          type: 'bar',
+          itemStyle: { color: '#0284c7', borderRadius: [4, 4, 0, 0] }
+        }]
+      });
+
+      // --- CHART 3: Tren Stop vs Order Kumulatif (Line) ---
+      const stopsTrend = [];
+      const ordersTrend = [];
+      sortedDates.forEach(date => {
+        let stopSum = 0;
+        let orderSum = 0;
+        filteredDataset.forEach(row => {
+          if (row["DELIVERY DATE"] === date) {
+            stopSum += parseInt(row["TOTAL STOP"], 10) || 0;
+            orderSum += parseInt(row["TOTAL ORDER"], 10) || 0;
+          }
+        });
+        stopsTrend.push(stopSum);
+        ordersTrend.push(orderSum);
+      });
+
+      if (charts.trendStopOrder) charts.trendStopOrder.dispose();
+      charts.trendStopOrder = echarts.init(document.getElementById('chart-trend-stop-order'));
+      charts.trendStopOrder.setOption({
+        legend: { textStyle: { color: textStyleColor } },
+        tooltip: { trigger: 'axis' },
+        grid: { top: 40, bottom: 40, left: 50, right: 20 },
+        xAxis: { type: 'category', data: sortedDates, axisLabel: { color: textStyleColor } },
+        yAxis: { type: 'value', splitLine: { lineStyle: { color: splitLineColor } }, axisLabel: { color: textStyleColor } },
+        series: [
+          { name: 'Total Stops', type: 'line', smooth: true, data: stopsTrend, itemStyle: { color: '#eab308' } },
+          { name: 'Total Orders', type: 'line', smooth: true, data: ordersTrend, itemStyle: { color: '#6366f1' } }
+        ]
+      });
+
+      // --- CHART 4: Top 10 Area Pengiriman Teraktif (Bar) ---
+      const areaMap = {};
+      filteredDataset.forEach(row => {
+        const a = row["Area pengiriman"] || "Lain-lain";
+        areaMap[a] = (areaMap[a] || 0) + 1;
+      });
+      const topAreas = Object.keys(areaMap).map(name => ({ name, value: areaMap[name] }))
+                            .sort((a,b) => b.value - a.value).slice(0, 10);
+
+      if (charts.areaVolume) charts.areaVolume.dispose();
+      charts.areaVolume = echarts.init(document.getElementById('chart-area-volume'));
+      charts.areaVolume.setOption({
+        grid: { top: 20, bottom: 40, left: 100, right: 20 },
+        tooltip: { trigger: 'axis' },
+        xAxis: { type: 'value', splitLine: { lineStyle: { color: splitLineColor } }, axisLabel: { color: textStyleColor } },
+        yAxis: { type: 'category', data: topAreas.map(item => item.name).reverse(), axisLabel: { color: textStyleColor } },
+        series: [{
+          type: 'bar',
+          data: topAreas.map(item => item.value).reverse(),
+          itemStyle: { color: '#0284c7', borderRadius: [0, 4, 4, 0] }
+        }]
+      });
+
+      // --- CHART 5: Distribusi OLF ---
+      const olfBins = ["0-25%", "26-50%", "51-75%", "76-100%", "100%+"];
+      const binCounts = [0, 0, 0, 0, 0];
+      filteredDataset.forEach(row => {
+        if (row["OLF"] !== undefined && row["OLF"] !== null) {
+          let cleanOlf = parseOlfToPercentage(row["OLF"]);
+          if (cleanOlf <= 25) binCounts[0]++;
+          else if (cleanOlf <= 50) binCounts[1]++;
+          else if (cleanOlf <= 75) binCounts[2]++;
+          else if (cleanOlf <= 100) binCounts[3]++;
+          else binCounts[4]++;
+        }
+      });
+
+
+      // --- CHART 6: Produktivitas Tipe Armada ---
+      const typeMap = {};
+      filteredDataset.forEach(row => {
+        const t = row["TYPE"] || "LAINNYA";
+        typeMap[t] = (typeMap[t] || 0) + 1;
+      });
+      const sortedTypes = Object.keys(typeMap).sort((a,b) => typeMap[b] - typeMap[a]);
+
+   
+    }
+
+    /**
+     * Virtual Scrolling Engine untuk mencegah lag saat merender ribuan baris data
+     */
+    let tableFilteredData = [];
+    function initVirtualTable() {
+      const searchQuery = document.getElementById('table-search').value.toLowerCase().trim();
+      if (searchQuery === "") {
+        tableFilteredData = [...filteredDataset];
+      } else {
+        tableFilteredData = filteredDataset.filter(row => {
+          return (row["NOPOL"] && row["NOPOL"].toLowerCase().includes(searchQuery)) ||
+                
+                 (row["Lane No Zyllem"] && row["Lane No Zyllem"].toLowerCase().includes(searchQuery)) ||
+                 (row["SI NUMBER"] && row["SI NUMBER"].toLowerCase().includes(searchQuery)) ||
+                 (row["Area pengiriman"] && row["Area pengiriman"].toLowerCase().includes(searchQuery));
+        });
+      }
+
+      // Hitung tinggi virtual container
+      const totalCount = tableFilteredData.length;
+      const totalHeight = totalCount * rowHeight;
+      document.getElementById('v-scroll-spacer').style.height = `${totalHeight}px`;
+
+      // Reset scroll posisi ke paling atas
+      document.getElementById('v-scroll-container').scrollTop = 0;
+      startIndex = 0;
+
+      renderVirtualRows();
+    }
+
+    function handleVirtualScroll() {
+      const container = document.getElementById('v-scroll-container');
+      const scrollTop = container.scrollTop;
+
+      // Hitung baris index awal berdasarkan scroll position
+      let newStartIndex = Math.floor(scrollTop / rowHeight);
+      newStartIndex = Math.max(0, Math.min(newStartIndex, tableFilteredData.length - visibleRowsCount));
+
+      if (newStartIndex !== startIndex) {
+        startIndex = newStartIndex;
+        renderVirtualRows();
+      }
+    }
+
+    /**
+     * Merender baris data di dalam viewport dengan penyesuaian OLF format % & Kolom Stop/Order
+     */
+    function renderVirtualRows() {
+      const container = document.getElementById('v-scroll-content');
       
-      lucide.createIcons();
-      updateMapTileStyle();
+      const total = tableFilteredData.length;
+      const endIndex = Math.min(startIndex + visibleRowsCount + 2, total); // tambah 2 buffer baris
+
+      const translateY = startIndex * rowHeight;
+      container.style.transform = `translateY(${translateY}px)`;
+
+      let html = '';
+      if (total === 0) {
+        html = `
+          <div class="flex items-center justify-center h-48 text-slate-400 font-semibold flex-col space-y-2">
+            <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+            <span>Tidak ada data transaksi yang ditemukan.</span>
+          </div>
+        `;
+        container.innerHTML = html;
+        document.getElementById('v-scroll-info').innerText = `Menampilkan baris 0 - 0 dari 0 baris data`;
+        return;
+      }
+
+      for (let i = startIndex; i < endIndex; i++) {
+        const row = tableFilteredData[i];
+        if (!row) continue;
+
+        // Memastikan OLF bertipe persentase (%)
+        let cleanOlfVal = '0.0%';
+        if (row["OLF"] !== undefined && row["OLF"] !== null) {
+          let parsedOlf = parseOlfToPercentage(row["OLF"]);
+          cleanOlfVal = `${parsedOlf.toFixed(1)}%`;
+        }
+
+        const isHit = row["OVERALL (HIT/MISS)"] === 'HIT';
+        const badgeColor = isHit 
+          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' 
+          : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
+
+        // Mendapatkan data Stop / Order
+        const totalStop = row["TOTAL STOP"] !== undefined ? row["TOTAL STOP"] : 0;
+        const totalOrder = row["TOTAL ORDER"] !== undefined ? row["TOTAL ORDER"] : 0;
+
+        html += `
+          <div class="grid grid-cols-12 px-4 py-3 border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 items-center text-xs select-none transition-all" style="height: ${rowHeight}px">
+            <div class="col-span-2 font-bold text-slate-900 dark:text-slate-100">${row["SI NUMBER"] || '--'}</div>
+            <div class="col-span-3">
+              <p class="font-bold text-slate-700 dark:text-slate-300 leading-tight truncate">${row["Lane No Zyllem"] || '--'}</p>
+              <p class="text-[10px] text-slate-400 leading-none mt-1">${row["RITASE"] || '--'}</p>
+            </div>
+            
+            <div class="col-span-2">
+              <p class="font-bold text-slate-800 dark:text-slate-200">${row["NOPOL"] || '--'}</p>
+              <p class="text-[10px] text-slate-400 truncate">${row["TYPE"] || '--'}</p>
+            </div>
+            <div class="col-span-2">
+              <p class="font-semibold text-slate-700 dark:text-slate-300 truncate">${row["Area pengiriman"] || '--'}</p>
+              <p class="text-[10px] text-slate-400">${row["DELIVERY DATE"] || '--'}</p>
+            </div>
+            <div class="col-span-1 text-center">
+              <p class="font-bold text-slate-800 dark:text-slate-200">${totalStop}</p>
+              <p class="text-[10px] text-slate-400 leading-none">/ ${totalOrder}</p>
+            </div>
+            <div class="col-span-1 text-center font-extrabold text-brand-500 dark:text-brand-400">${cleanOlfVal}</div>
+            <div class="col-span-1 text-center">
+              <span class="inline-block px-2 py-1 text-[10px] font-bold rounded-lg border ${badgeColor}">
+                ${row["OVERALL (HIT/MISS)"] || 'MISS'}
+              </span>
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+      document.getElementById('v-scroll-info').innerText = `Menampilkan baris ${startIndex + 1} - ${endIndex} dari ${total.toLocaleString('id-ID')} baris data`;
+    }
+
+    function handleTableSearch() {
+      initVirtualTable();
+    }
+
+    /**
+     * Smart AI Insights Panel (Analisis statistik logis deskriptif otomatis)
+     */
+    function generateAIInsights() {
+      const listContainer = document.getElementById('ai-insight-list');
+      if (filteredDataset.length === 0) {
+        listContainer.innerHTML = `<p class="text-slate-400 italic">Analisis tidak tersedia karena data kosong.</p>`;
+        return;
+      }
+
+      // Analisis Area Teraktif
+      const areaMap = {};
+      filteredDataset.forEach(row => {
+        const a = row["Area pengiriman"] || "Lain-lain";
+        areaMap[a] = (areaMap[a] || 0) + 1;
+      });
+      const topArea = Object.keys(areaMap).sort((a,b) => areaMap[b] - areaMap[a])[0] || 'Unknown';
+
       
-      // Re-trigger EChart updates to adapt theme colors
+
+      // Analisis Rasio Hit vs Miss
+      let countHit = 0;
+      filteredDataset.forEach(row => {
+        if (row["OVERALL (HIT/MISS)"] === "HIT") countHit++;
+      });
+      const hitRatio = (countHit / filteredDataset.length) * 100;
+
+      // Hitung skor kpi operasional (0 - 100)
+      const kpiScore = Math.round(hitRatio);
+      document.getElementById('ai-gauge-score').innerText = kpiScore;
+      
+      // Mengubah rotasi gauge indicator
+      const rotationDeg = 45 + (kpiScore * 1.8); // 45deg sampai 225deg
+      document.getElementById('ai-gauge-score-border').style.transform = `rotate(${rotationDeg}deg)`;
+
+      let verdict = '';
+      let verdictColor = '';
+      if (kpiScore >= 80) {
+        verdict = 'Sangat Baik (Optimal)';
+        verdictColor = 'text-emerald-500';
+      } else if (kpiScore >= 60) {
+        verdict = 'Cukup Efisien (Perlu Pemantauan)';
+        verdictColor = 'text-amber-500';
+      } else {
+        verdict = 'Kritis (Perlu Tindakan Korektif)';
+        verdictColor = 'text-rose-500';
+      }
+      document.getElementById('ai-gauge-verdict').innerText = verdict;
+      document.getElementById('ai-gauge-verdict').className = `text-sm font-bold uppercase tracking-wider ${verdictColor}`;
+
+      // Buat rekomendasi cerdas otomatis
+      let html = `
+       
+        <div class="flex items-start space-x-3 p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-900/40">
+          <span class="p-2 bg-emerald-500 text-white rounded-lg text-xs font-bold mt-0.5"><i class="fa-solid fa-check-double"></i></span>
+          <div>
+            <h5 class="font-bold text-slate-800 dark:text-slate-100">Evaluasi SLA (HIT Ratio)</h5>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Tingkat keberhasilan pengiriman (HIT) mencapai <strong class="text-emerald-600 dark:text-emerald-400">${hitRatio.toFixed(1)}%</strong>. Untuk meningkatkan efisiensi, prioritaskan penyaringan armada yang sering mengalami MISS.</p>
+          </div>
+        </div>
+      `;
+
+      listContainer.innerHTML = html;
+    }
+
+    /**
+     * Berpindah antar menu dashboard tab secara visual
+     */
+    function switchTab(tabId) {
+      // Hapus kelas aktif dari semua tab panel
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+      // Tampilkan tab yang dipilih
+      document.getElementById(tabId).classList.remove('hidden');
+
+      // Update sidebar button styles
+      document.querySelectorAll('.nav-item').forEach(el => {
+        el.className = "nav-item flex items-center w-full px-4 py-3 text-sm font-medium rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all";
+      });
+
+      const activeBtn = document.getElementById(`btn-${tabId}`);
+      if (activeBtn) {
+        activeBtn.className = "nav-item flex items-center w-full px-4 py-3 text-sm font-semibold rounded-xl text-brand-500 bg-brand-50 dark:bg-brand-950/40 transition-all";
+      }
+
+      activeTab = tabId;
+
+      // Resizing Charts agar fit dengan container barunya
       setTimeout(() => {
-        updateDashboardData();
+        Object.keys(charts).forEach(key => charts[key] && charts[key].resize());
       }, 100);
     }
 
-    // --- MOBILE SIDEBAR RESPONSIVENESS ---
-    function toggleSidebar() {
-      const sidebar = document.getElementById('sidebar');
-      if (sidebar.classList.contains('-translate-x-full')) {
-        sidebar.classList.remove('-translate-x-full');
+    /**
+     * Memutar slideshow / command center mode nasional secara otomatis
+     */
+    function toggleSlideshow() {
+      const btn = document.getElementById('btn-slideshow-state');
+      if (slideshowActive) {
+        clearInterval(slideshowTimer);
+        slideshowActive = false;
+        btn.innerHTML = `<i class="fa-solid fa-play mr-1.5"></i> JALANKAN SLIDESHOW`;
+        btn.className = "px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-xs font-bold rounded-lg transition-all flex items-center";
+        document.getElementById('mon-status-timer').innerText = 'Status: Berhenti';
       } else {
-        sidebar.classList.add('-translate-x-full');
-      }
-    }
-
-    // --- NATIONAL MONITORING COMMAND CENTER SLIDESHOW ---
-    function startNationalMonitoringMode() {
-      isNationalCommandMode = true;
-      document.getElementById('national-command-overlay').classList.remove('hidden');
-      
-      // Enter Fullscreen if supported
-      const elem = document.documentElement;
-      if (elem.requestFullscreen) {
-        elem.requestFullscreen();
-      }
-
-      // Initialize slideshow loop
-      nationalSlideshowIndex = 0;
-      renderNationalSlide();
-      
-      nationalSlideshowTimer = setInterval(() => {
-        nationalSlideshowIndex = (nationalSlideshowIndex + 1) % nationalTabs.length;
-        renderNationalSlide();
-      }, 10000); // 10 seconds interval
-    }
-
-    function exitNationalMonitoringMode() {
-      isNationalCommandMode = false;
-      document.getElementById('national-command-overlay').classList.add('hidden');
-      
-      if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
-      }
-
-      if (nationalSlideshowTimer) clearInterval(nationalSlideshowTimer);
-    }
-
-    function renderNationalSlide() {
-      const currentTab = nationalTabs[nationalSlideshowIndex];
-      const targetContainer = document.getElementById('cc-content-container');
-      const badge = document.getElementById('cc-slideshow-tab');
-      
-      badge.textContent = `Slide: ${currentTab.toUpperCase()}`;
-      
-      // Copy the HTML view from standard tab content to CC container
-      const sourceElement = document.getElementById(`tab-${currentTab}`);
-      targetContainer.innerHTML = sourceElement.innerHTML;
-      
-      // Re-bind Leaflet or ECharts as necessary in cloned context
-      if (currentTab === 'visualisasi') {
-        setTimeout(() => {
-          // Re-initialize ECharts inside Command Center container
-          const chartIds = ['chart-area-bar', 'chart-fleet-pie', 'chart-order-area', 'chart-compliance-pie'];
-          chartIds.forEach(id => {
-            const ccChartEl = targetContainer.querySelector(`#${id}`);
-            if (ccChartEl) {
-              ccChartEl.style.height = "290px";
-              const ccChart = echarts.init(ccChartEl);
-              // Re-render chart using current metrics
-              const areaCounts = {};
-              const fleetCounts = {};
-              filteredData.forEach(row => {
-                areaCounts[row["Area pengiriman"]] = (areaCounts[row["Area pengiriman"]] || 0) + 1;
-                fleetCounts[row["TYPE"]] = (fleetCounts[row["TYPE"]] || 0) + 1;
-              });
-              
-              if (id === 'chart-area-bar') {
-                ccChart.setOption({
-                  tooltip: {},
-                  xAxis: { type: 'category', data: Object.keys(areaCounts), axisLabel: { color: '#94a3b8' } },
-                  yAxis: { type: 'value', axisLabel: { color: '#94a3b8' } },
-                  series: [{ data: Object.values(areaCounts), type: 'bar', color: '#6366f1' }]
-                });
-              } else if (id === 'chart-fleet-pie') {
-                const pieData = Object.keys(fleetCounts).map(fleet => ({ value: fleetCounts[fleet], name: fleet }));
-                ccChart.setOption({
-                  legend: { bottom: 0, textStyle: { color: '#94a3b8' } },
-                  series: [{ type: 'pie', radius: ['40%', '70%'], data: pieData }]
-                });
-              } else if (id === 'chart-order-area') {
-                ccChart.setOption({
-                  xAxis: { type: 'category', data: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'], axisLabel: { color: '#94a3b8' } },
-                  yAxis: { type: 'value', axisLabel: { color: '#94a3b8' } },
-                  series: [{ type: 'line', data: [120, 200, 150, 80, 70, 110, 130], areaStyle: {} }]
-                });
-              } else if (id === 'chart-compliance-pie') {
-                ccChart.setOption({
-                  series: [{ type: 'pie', radius: '60%', data: [
-                    { value: filteredData.filter(r => r["OVERALL (HIT/MISS)"] === "HIT").length, name: 'HIT' },
-                    { value: filteredData.filter(r => r["OVERALL (HIT/MISS)"] === "MISS").length, name: 'MISS' }
-                  ] }]
-                });
-              }
-            }
-          });
-        }, 150);
-      } else if (currentTab === 'peta') {
-        setTimeout(() => {
-          const mapEl = targetContainer.querySelector('#leaflet-map');
-          if (mapEl) {
-            mapEl.style.height = "420px";
-            const ccMap = L.map(mapEl).setView([-7.35, 112.65], 10);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(ccMap);
-            
-            // Draw markers
-            let mapData = filteredData.filter(item => item["CARRIER"] === "1D-INTERNAL (SDA)");
-            const areaStats = {};
-            mapData.forEach(row => {
-              const area = row["Area pengiriman"];
-              if (area) {
-                if (!areaStats[area]) areaStats[area] = { total: 0, hit: 0 };
-                areaStats[area].total++;
-                if (row["OVERALL (HIT/MISS)"] === "HIT") areaStats[area].hit++;
-              }
-            });
-
-            Object.keys(areaStats).forEach(area => {
-              const coords = areaCoordinates[area] || [-7.25, 112.74];
-              const stats = areaStats[area];
-              const hitRate = stats.total > 0 ? ((stats.hit / stats.total) * 100).toFixed(0) : 0;
-              const markerColor = hitRate >= 80 ? "#10b981" : "#f59e0b";
-              
-              const customIcon = L.divIcon({
-                html: `<div class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-lg border-2 border-white animate-pulse" style="background-color: ${markerColor}">${stats.total}</div>`,
-                className: '',
-                iconSize: [28, 28]
-              });
-              L.marker(coords, { icon: customIcon }).addTo(ccMap);
-            });
-          }
-        }, 150);
-      }
-    }
-
-    // --- ENTERPRISE EXPORT ENGINE ---
-    function exportDashboardPNG() {
-      const element = document.getElementById('main-content-container');
-      
-      // Style tweaks before capturing
-      html2canvas(element, {
-        backgroundColor: isDarkMode ? '#0f172a' : '#f8fafc',
-        useCORS: true,
-        scale: 2
-      }).then(canvas => {
-        const link = document.createElement('a');
-        link.download = `PurworejoIT-Logistics-Dashboard-${new Date().toISOString().split('T')[0]}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-      });
-    }
-
-    function exportDashboardPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF('l', 'mm', 'a4');
-      const element = document.getElementById('main-content-container');
-      
-      html2canvas(element, {
-        scale: 2,
-        useCORS: true
-      }).then(canvas => {
-        const imgData = canvas.toDataURL('image/png');
-        const imgWidth = 297; // A4 size landscape width
-        const pageHeight = 210; // A4 size landscape height
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        slideshowActive = true;
+        btn.innerHTML = `<i class="fa-solid fa-pause mr-1.5"></i> HENTIKAN SLIDESHOW`;
+        btn.className = "px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-xs font-bold rounded-lg transition-all flex items-center";
         
-        doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-        doc.save(`PurworejoIT-Enterprise-Logistics-Report-${new Date().toISOString().split('T')[0]}.pdf`);
+        slideshowIndex = 0;
+        slideshowTimer = setInterval(() => {
+          slideshowIndex = (slideshowIndex + 1) % slideshowSequence.length;
+          switchTab(slideshowSequence[slideshowIndex]);
+          document.getElementById('mon-status-timer').innerText = `Menampilkan: ${slideshowSequence[slideshowIndex]}`;
+        }, 10000); // ganti halaman setiap 10 detik
+
+        document.getElementById('mon-status-timer').innerText = 'Menampilkan: tab-summary';
+        switchTab('tab-summary');
+      }
+    }
+
+    /**
+     * Ekspor Data Tabel yang aktif ke format file CSV
+     */
+    function exportToCSV() {
+      if (tableFilteredData.length === 0) return;
+      
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += headers.join(",") + "\n";
+
+      tableFilteredData.forEach(row => {
+        let rowArray = headers.map(header => {
+          let val = row[header] !== undefined ? row[header].toString() : '';
+          // Sanitasi karakter koma dan tanda kutip ganda dalam CSV
+          val = val.replace(/"/g, '""');
+          if (val.search(/("|,|\n)/g) >= 0) {
+            val = `"${val}"`;
+          }
+          return val;
+        });
+        csvContent += rowArray.join(",") + "\n";
       });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `Monitoring_LC_Export_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function toggleDarkMode() {
+      const isDark = document.documentElement.classList.contains('dark');
+      const nextTheme = isDark ? 'light' : 'dark';
+      document.documentElement.className = nextTheme;
+      localStorage.setItem('theme', nextTheme);
+      updateThemeIcon(nextTheme);
+      
+      // Gambar ulang grafik dengan tema yang sesuai
+      setTimeout(renderAllCharts, 200);
+    }
+
+    function updateThemeIcon(theme) {
+      const icon = document.getElementById('theme-icon');
+      if (theme === 'dark') {
+        icon.className = "fa-solid fa-sun text-sm";
+      } else {
+        icon.className = "fa-solid fa-moon text-sm";
+      }
+    }
+
+    function showLoading(show) {
+      // Logic indicator loading jika diperlukan
     }
   </script>
 </body>
 </html>
-
